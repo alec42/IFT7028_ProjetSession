@@ -1,5 +1,6 @@
-library("googlesheets4")
+library(googlesheets4)
+# library(googledrive)
 
 gs4_auth(cache = ".secrets", email = "alecvanrassel@gmail.com")
 
-link_gs <- "https://docs.google.com/spreadsheets/d/1D9IdBLNkEiwUTJGFw8HslNg-uB9-gRY7O9qY5kmsHDg/edit?usp=sharing"
+link_gs <- "https://docs.google.com/spreadsheets/d/19a6CHM3EHiJltrEn4-bFL6oBZ9IrE72tE1MxqOH0Ueo/edit?usp=drive_web&ouid=103539700251582543718"

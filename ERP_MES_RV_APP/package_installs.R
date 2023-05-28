@@ -1,5 +1,6 @@
 packages <- c(
-    "shinydashboard", "shiny", "plotly",
+    "shinydashboard", "shinydashboardPlus", "shinyWidgets", "shinyAce", "shinyjqui", "shinyEffects",
+    "shiny", "plotly",
     "tidyverse", "DT",
-    "Microsoft365R", "googlesheets4")
+    "Microsoft365R", "googlesheets4", "googledrive")
 install.packages(packages)
