@@ -48,7 +48,7 @@ ui <- shinydashboard::dashboardPage(
             ),
             shinydashboard::tabItem(tabName = "clientOrders_completed",
                 shiny::fluidRow(
-                    shinydashboardPlus::box(title = "Commandes en cours", width = 6#, DT::DTOutput("completed_table")
+                    shinydashboardPlus::box(title = "Commandes en cours", width = 6
                     ),
                     shinydashboardPlus::box(title = "Commandes en attente de matériaux", width = 6
                     )
@@ -64,6 +64,9 @@ ui <- shinydashboard::dashboardPage(
             ),
 
             shinydashboard::tabItem(tabName ="purchaseOrders",
+                shiny::actionButton("refreshBtnPO", "Update"),
+                shiny::actionButton("saveBtnPO", "Save"),
+                DT::dataTableOutput('PurchaseOrders_DT')
 
             ),
 
@@ -83,48 +86,23 @@ source("scripts/interactiveDT.R", local = TRUE)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-
-    # createFilteredTable <- function(data, filterValue) {
-    #     DT::renderDT({
-    #         DT::datatable(
-    #             data[data$Statut == filterValue, ], escape = FALSE, selection = 'none', rownames = FALSE,
-    #             options = list(paging = FALSE, ordering = FALSE, scrollX = TRUE, dom = "t",
-    #                            preDrawCallback = JS('function() { Shiny.unbindAll(this.api().table().node()); }'),
-    #                            drawCallback = JS('function() { Shiny.bindAll(this.api().table().node()); } ')
-    #             )
-    #         )
-    #     })
-    # }
     ### Reactive DF for Customer Orders
-    # Import Data from Google Sheets
-    interactive_dt <- InteractiveDT(link_gs, "commandes_clients", "Statut", input, output, session)
-    # Update Data if Refresh Button
-    shiny::observeEvent(input$refreshBtn, {
-        interactive_dt <- InteractiveDT(link_gs, "commandes_clients", "Statut", input, output, session)
-        # replaceData(proxy = interactive_dt$CustomerOrders_proxy, data = interactive_dt$reactiveHTMLDF(), rownames = FALSE)
+    interactive_dt <- InteractiveDT(link_gs = link_gs, sheet = "commandes_clients", mapping_sheet = "mapping_commandes_clients", id = "CustomerOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
+    shiny::observeEvent(input$refreshBtn, { # Update Data if Refresh Button
+        interactive_dt <- InteractiveDT(link_gs = link_gs, sheet = "commandes_clients", mapping_sheet = "mapping_commandes_clients", id = "CustomerOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
+        print(interactive_dt$reactiveResultDF())
     })
-    # Update Data if select tab
-    # shiny::observeEvent(input$sidebarMenu, {
-    #     # interactive_dt <- InteractiveDT(link_gs, "commandes_clients", "Statut", input, output, session)
-    #     replaceData(proxy = interactive_dt$CustomerOrders_proxy, data = interactive_dt$reactiveHTMLDF(), rownames = FALSE)
-    #     selectedTab <- input$sidebarMenu
-    #     if (selectedTab == "clientOrders_wait" || selectedTab == "clientOrders_completed") {
-    #         output$completed_table <- createFilteredTable(interactive_dt$reactiveResultDF(), "Complétée")
-    #     }
-    # })
-
     shiny::observeEvent(input$saveBtn, {
         googlesheets4::sheet_write(data = interactive_dt$reactiveResultDF(), ss = link_gs, sheet = "commandes_clients")
     })
 
-    # output$completed_table <- createFilteredTable(interactive_dt$reactiveResultDF(), "Complétée")
-
-    # output$orders_db <- DT::renderDT({
-    #     datatable(data = db_orders, rownames = FALSE, selection = 'none',
-    #           editable = list(target="row", disable = list(columns =seq_along(db_orders)[names(db_orders)!= "Statut"]-1))
-    #     )
-    # })
-
+    interactive_dt_fournisseur <- InteractiveDT(link_gs = link_gs, sheet = "commandes_fournisseurs", mapping_sheet = "mapping_commandes_fournisseurs", id = "PurchaseOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
+    shiny::observeEvent(input$refreshBtnPO, { # Update Data if Refresh Button
+        interactive_dt_fournisseur <- InteractiveDT(link_gs = link_gs, sheet = "commandes_fournisseurs", mapping_sheet = "mapping_commandes_fournisseurs", id = "PurchaseOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
+    })
+    shiny::observeEvent(input$saveBtnPO, {
+        googlesheets4::sheet_write(data = interactive_dt_fournisseur$reactiveResultDF(), ss = link_gs, sheet = "commandes_fournisseurs")
+    })
 
 }
 

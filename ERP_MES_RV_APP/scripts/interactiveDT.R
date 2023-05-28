@@ -1,12 +1,13 @@
 ### - Code tiré https://stackoverflow.com/questions/75948475/value-not-updated-in-shiny-using-dt-and-drop-down-selection/75950123#75950123
-InteractiveDT <- function(link_gs, sheet, dropdownCol, input, output, session) {
-    library(shiny)
-    library(DT)
+InteractiveDT <- function(link_gs, sheet, mapping_sheet = "mapping", id = "CustomerOrders", dropdownCol, input, output, session) {
+    require(shiny)
+    require(DT)
+    require(googlesheets4)
 
     resultDF <- displayHTMLDF <- initHTMLDF <- initData <-
         read_sheet(link_gs, sheet = sheet)
 
-    Statuts_Orders <- read_sheet(link_gs, sheet = 'mapping') |>
+    Statuts_Orders <- read_sheet(link_gs, sheet = mapping_sheet) |>
         pull(dropdownCol)
 
     # Set up IDS if several dropDownColumns
@@ -15,11 +16,12 @@ InteractiveDT <- function(link_gs, sheet, dropdownCol, input, output, session) {
     initHTMLDF[[dropdownCol]] <- sapply(seq_along(colDropdownIDs), function(i) {
         as.character(selectInput(inputId = colDropdownIDs[i], label = "", choices = Statuts_Orders, selected = initData$Statut[i]))
     })
+    print(isolate(colDropdownIDs))
 
     reactiveHTMLDF <- reactive({
         colDropdownIDs <- dropdownIDs[[dropdownCol]]
         displayHTMLDF[[dropdownCol]] <- sapply(seq_along(colDropdownIDs), function(i) {
-            as.character(selectInput(colDropdownIDs[i], label = "", choices = Statuts_Orders, selected = input[[colDropdownIDs[i]]]))
+            as.character(selectInput(inputId = colDropdownIDs[i], label = "", choices = Statuts_Orders, selected = input[[colDropdownIDs[i]]]))
         })
         return(displayHTMLDF)
     })
@@ -32,20 +34,15 @@ InteractiveDT <- function(link_gs, sheet, dropdownCol, input, output, session) {
         return(resultDF)
     })
 
-    output$CustomerOrders_DT <- DT::renderDataTable({
+    output[[paste0(id, "_DT")]] <- DT::renderDataTable({
         DT::datatable(
-            initHTMLDF, escape = FALSE, selection = 'none', rownames = FALSE, filter = "top",
-            options = list(paging = FALSE, ordering = FALSE, scrollx = TRUE, dom = "t",
+            initHTMLDF, escape = FALSE, selection = 'none', rownames = FALSE, filter = 'top',
+            options = list(paging = FALSE, ordering = FALSE, scrollx = TRUE, dom = 't',
                            preDrawCallback = JS('function() { Shiny.unbindAll(this.api().table().node()); }'),
                            drawCallback = JS('function() { Shiny.bindAll(this.api().table().node()); } ')
             )
         )
     })
 
-    CustomerOrders_proxy <- dataTableProxy("CustomerOrders_DT", session)
-
-    observeEvent({sapply(unlist(dropdownIDs), function(x) {input[[x]]})}, {
-        replaceData(proxy = CustomerOrders_proxy, data = reactiveHTMLDF(), rownames = FALSE)
-    }, ignoreInit = TRUE)
     return(list(reactiveHTMLDF = reactiveHTMLDF, reactiveResultDF = reactiveResultDF))
 }
