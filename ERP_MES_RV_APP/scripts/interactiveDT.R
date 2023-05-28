@@ -1,3 +1,4 @@
+### - Code tiré https://stackoverflow.com/questions/75948475/value-not-updated-in-shiny-using-dt-and-drop-down-selection/75950123#75950123
 InteractiveDT <- function(link_gs, sheet, dropdownCol, input, output, session) {
     library(shiny)
     library(DT)
@@ -33,7 +34,7 @@ InteractiveDT <- function(link_gs, sheet, dropdownCol, input, output, session) {
 
     output$CustomerOrders_DT <- DT::renderDataTable({
         DT::datatable(
-            initHTMLDF, escape = FALSE, selection = 'none', rownames = FALSE,
+            initHTMLDF, escape = FALSE, selection = 'none', rownames = FALSE, filter = "top",
             options = list(paging = FALSE, ordering = FALSE, scrollx = TRUE, dom = "t",
                            preDrawCallback = JS('function() { Shiny.unbindAll(this.api().table().node()); }'),
                            drawCallback = JS('function() { Shiny.bindAll(this.api().table().node()); } ')
@@ -46,8 +47,5 @@ InteractiveDT <- function(link_gs, sheet, dropdownCol, input, output, session) {
     observeEvent({sapply(unlist(dropdownIDs), function(x) {input[[x]]})}, {
         replaceData(proxy = CustomerOrders_proxy, data = reactiveHTMLDF(), rownames = FALSE)
     }, ignoreInit = TRUE)
-    shiny::observeEvent(input$saveBtn, {
-        googlesheets4::sheet_write(data = reactiveResultDF(), ss = link_gs, sheet = "commandes_clients")
-    })
-
+    return(list(reactiveHTMLDF = reactiveHTMLDF, reactiveResultDF = reactiveResultDF))
 }
