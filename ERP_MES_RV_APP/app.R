@@ -7,33 +7,35 @@ library(shinydashboard)
 library(shinydashboardPlus)
 library(shinyWidgets)
 
-# db_orders <- read_sheet(link_gs, sheet = 'commandes_clients') |>
-#     mutate(Statut=as.factor(Statut))
+##########################
+# Interface Utilisateur #
+########################
 
-# Define UI for application that draws a histogram
 ui <- shinydashboard::dashboardPage(
     header = shinydashboard::dashboardHeader(
-        shinydashboard::dropdownMenuOutput("ordersToApprove")
     ),
+    
+    ##########
+    ## Menu ##
+    ##########
     sidebar = shinydashboard::dashboardSidebar(
         shinydashboard::sidebarMenu(id="sidebarMenu",
             shinydashboard::menuItem("Tableau de bord", tabName = "dashboard", icon = icon("dashboard")),
             shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("th")),
-            shinydashboard::menuItem("Commandes client", tabName = "clientOrders", icon = icon("th"),
-                 shinydashboard::menuSubItem("Commandes", tabName = "clientOrders_all"),
-                 shinydashboard::menuSubItem("Commandes complétées", tabName = "clientOrders_completed"),
-                 shinydashboard::menuSubItem("Commandes en attente", tabName = "clientOrders_wait")
-            ),
+            shinydashboard::menuItem("Commandes client", tabName = "clientOrders", icon = icon("th")),
             shinydashboard::menuItem("Commandes fournisseurs", tabName = "purchaseOrders", icon = icon("th")),
             shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("th")),
             shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("th"))
         )
     ),
+    
+    #############
+    ## Contenu ##
+    #############
     body = shinydashboard::dashboardBody(
         shinyjs::useShinyjs(),
-        tags$head(tags$style(HTML("
-            .box {overflow: scroll;}"))
-        ),
+        tags$head(tags$style(HTML(".box {overflow: scroll;}"))),
+        
         shinydashboard::tabItems(
             shinydashboard::tabItem(tabName ="dashboard"
             ),
@@ -41,33 +43,25 @@ ui <- shinydashboard::dashboardPage(
             shinydashboard::tabItem(tabName ="inventory"
             ),
 
-            shinydashboard::tabItem(tabName ="clientOrders_all",
-                    shiny::actionButton("refreshBtn", "Update"),
-                    shiny::actionButton("saveBtn", "Save"),
+            shinydashboard::tabItem(tabName ="clientOrders",
+                    shiny::textInput("orderID", "Numéro de commande"),
+                    shiny::selectInput("statusChoice", "Choix Statut", c("Modifiable", "Complétée", 
+                                                                         "En production", "Planifiée", 
+                                                                         "Commandée", "Expédiée",
+                                                                         "En attente de matériaux")),
+                    shiny::actionButton("updateStatus", "Mettre à jour le statut"),
+                    shiny::actionButton("refreshBtn", "Annuler"),
+                    shiny::actionButton("saveBtn", "Enregistrer"),
                     DT::dataTableOutput('CustomerOrders_DT')
-            ),
-            shinydashboard::tabItem(tabName = "clientOrders_completed",
-                shiny::fluidRow(
-                    shinydashboardPlus::box(title = "Commandes en cours", width = 6
-                    ),
-                    shinydashboardPlus::box(title = "Commandes en attente de matériaux", width = 6
-                    )
-                )
-            ),
-            shinydashboard::tabItem(tabName = "clientOrders_wait",
-                shiny::fluidRow(
-                    shinydashboardPlus::box(title = "Commandes complétées", width = 6
-                    ),
-                    shinydashboardPlus::box(title = "Commandes en attente", width = 6
-                    )
-                )
             ),
 
             shinydashboard::tabItem(tabName ="purchaseOrders",
-                shiny::actionButton("refreshBtnPO", "Update"),
-                shiny::actionButton("saveBtnPO", "Save"),
+                shiny::textInput("orderID_PO", "Numéro de commande"),
+                shiny::selectInput("statusChoice_PO", "Choix Statut", c("Commandée", "Reçue")),
+                shiny::actionButton("updateStatus_PO", "Mettre à jour le statut"),
+                shiny::actionButton("refreshBtn_PO", "Annuler"),
+                shiny::actionButton("saveBtn_PO", "Enregistrer"),
                 DT::dataTableOutput('PurchaseOrders_DT')
-
             ),
 
             shinydashboard::tabItem(tabName ="dailyProduction",
@@ -86,24 +80,75 @@ source("scripts/interactiveDT.R", local = TRUE)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-    ### Reactive DF for Customer Orders
-    interactive_dt <- InteractiveDT(link_gs = link_gs, sheet = "commandes_clients", mapping_sheet = "mapping_commandes_clients", id = "CustomerOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
-    shiny::observeEvent(input$refreshBtn, { # Update Data if Refresh Button
-        interactive_dt <- InteractiveDT(link_gs = link_gs, sheet = "commandes_clients", mapping_sheet = "mapping_commandes_clients", id = "CustomerOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
-        print(interactive_dt$reactiveResultDF())
-    })
-    shiny::observeEvent(input$saveBtn, {
-        googlesheets4::sheet_write(data = interactive_dt$reactiveResultDF(), ss = link_gs, sheet = "commandes_clients")
-    })
+  
+  #######################
+  ## Données réactives ##
+  #######################
+  values <- reactiveValues()
+  values$customerOrders <- read_sheet(link_gs, sheet = "commandes_clients")
+  values$purchaseOrders <- read_sheet(link_gs, sheet = "commandes_fournisseurs")
+  
+  ##########################
+  ## Affichage par défaut ##
+  ##########################
+  output$CustomerOrders_DT <- outputDT(values$customerOrders)
+  output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
+  
+  ##############################
+  ## Menu : commandes clients ##
+  ##############################
+  
+  # Button : Mettre à jour le statut
+  observeEvent(input$updateStatus,
+               {
+                 values$customerOrders[as.character(values$customerOrders$CommandID) == input$orderID,]$Statut <- input$statusChoice
+                 output$CustomerOrders_DT <- outputDT(values$customerOrders)
+               }
+               )
+  
+  # Button : Annuler
+  observeEvent(input$refreshBtn,
+               {
+                 values$customerOrders<- read_sheet(link_gs, sheet = "commandes_clients")
+                 output$CustomerOrders_DT <- outputDT(values$customerOrders)
+               }
+               )
+  
+  # Button : Enregistrer
+  observeEvent(input$saveBtn,
+               {
+                 googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs, sheet = "commandes_clients")
+               }
+               )
+  
 
-    interactive_dt_fournisseur <- InteractiveDT(link_gs = link_gs, sheet = "commandes_fournisseurs", mapping_sheet = "mapping_commandes_fournisseurs", id = "PurchaseOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
-    shiny::observeEvent(input$refreshBtnPO, { # Update Data if Refresh Button
-        interactive_dt_fournisseur <- InteractiveDT(link_gs = link_gs, sheet = "commandes_fournisseurs", mapping_sheet = "mapping_commandes_fournisseurs", id = "PurchaseOrders", dropdownCol = "Statut", input = input, output = output, session = session) # Import Data from Google Sheets
-    })
-    shiny::observeEvent(input$saveBtnPO, {
-        googlesheets4::sheet_write(data = interactive_dt_fournisseur$reactiveResultDF(), ss = link_gs, sheet = "commandes_fournisseurs")
-    })
-
+  ###################################
+  ## Menu : commandes fournisseurs ##
+  ###################################
+  
+  # Button : Mettre à jour le statut
+  observeEvent(input$updateStatus_PO,
+               {
+                 values$purchaseOrders[as.character(values$purchaseOrders$CommandID) == input$orderID_PO,]$Statut <- input$statusChoice_PO
+                 output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
+               }
+  )
+  
+  # Button : Annuler
+  observeEvent(input$refreshBtn_PO,
+               {
+                 values$purchaseOrders<- read_sheet(link_gs, sheet = "commandes_fournisseurs")
+                 output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
+               }
+  )
+  
+  # Button : Enregistrer
+  observeEvent(input$saveBtn_PO,
+               {
+                 googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs, sheet = "commandes_fournisseurs")
+               }
+  )
+  
 }
 
 shinyApp(ui, server)
