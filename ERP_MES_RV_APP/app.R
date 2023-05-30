@@ -14,7 +14,7 @@ library(shinyWidgets)
 ui <- shinydashboard::dashboardPage(
     header = shinydashboard::dashboardHeader(
     ),
-    
+
     ##########
     ## Menu ##
     ##########
@@ -28,14 +28,14 @@ ui <- shinydashboard::dashboardPage(
             shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("th"))
         )
     ),
-    
+
     #############
     ## Contenu ##
     #############
     body = shinydashboard::dashboardBody(
         shinyjs::useShinyjs(),
         tags$head(tags$style(HTML(".box {overflow: scroll;}"))),
-        
+
         shinydashboard::tabItems(
             shinydashboard::tabItem(tabName ="dashboard"
             ),
@@ -45,8 +45,8 @@ ui <- shinydashboard::dashboardPage(
 
             shinydashboard::tabItem(tabName ="clientOrders",
                     shiny::textInput("orderID", "Numéro de commande"),
-                    shiny::selectInput("statusChoice", "Choix Statut", c("Modifiable", "Complétée", 
-                                                                         "En production", "Planifiée", 
+                    shiny::selectInput("statusChoice", "Choix Statut", c("Modifiable", "Complétée",
+                                                                         "En production", "Planifiée",
                                                                          "Commandée", "Expédiée",
                                                                          "En attente de matériaux")),
                     shiny::actionButton("updateStatus", "Mettre à jour le statut"),
@@ -78,77 +78,65 @@ ui <- shinydashboard::dashboardPage(
 source("scripts/googlesheets_access.R", local = TRUE) # get link to gs
 source("scripts/interactiveDT.R", local = TRUE)
 
+###########################
+## Onglets Google Sheets ##
+###########################
+customerOrdersSheetName <- "commandes_clients"
+purchaseOrdersSheetName <- "commandes_fournisseurs"
+
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
-  
+
   #######################
   ## Données réactives ##
   #######################
   values <- reactiveValues()
-  values$customerOrders <- read_sheet(link_gs, sheet = "commandes_clients")
-  values$purchaseOrders <- read_sheet(link_gs, sheet = "commandes_fournisseurs")
-  
+  values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
+  values$purchaseOrders <- read_sheet(link_gs, sheet = purchaseOrdersSheetName)
+
   ##########################
   ## Affichage par défaut ##
   ##########################
   output$CustomerOrders_DT <- outputDT(values$customerOrders)
   output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
-  
+
   ##############################
   ## Menu : commandes clients ##
   ##############################
-  
   # Button : Mettre à jour le statut
-  observeEvent(input$updateStatus,
-               {
-                 values$customerOrders[as.character(values$customerOrders$CommandID) == input$orderID,]$Statut <- input$statusChoice
-                 output$CustomerOrders_DT <- outputDT(values$customerOrders)
-               }
-               )
-  
+  observeEvent(input$updateStatus, {
+    values$customerOrders[as.character(values$customerOrders$CommandID) == input$orderID,]$Statut <- input$statusChoice
+    output$CustomerOrders_DT <- outputDT(values$customerOrders)
+  })
   # Button : Annuler
-  observeEvent(input$refreshBtn,
-               {
-                 values$customerOrders<- read_sheet(link_gs, sheet = "commandes_clients")
-                 output$CustomerOrders_DT <- outputDT(values$customerOrders)
-               }
-               )
-  
+  observeEvent(input$refreshBtn, {
+    values$customerOrders<- read_sheet(link_gs, sheet = customerOrdersSheetName)
+    output$CustomerOrders_DT <- outputDT(values$customerOrders)
+  })
   # Button : Enregistrer
-  observeEvent(input$saveBtn,
-               {
-                 googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs, sheet = "commandes_clients")
-               }
-               )
-  
+  observeEvent(input$saveBtn, {
+    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs, sheet = customerOrdersSheetName)
+  })
+
 
   ###################################
   ## Menu : commandes fournisseurs ##
   ###################################
-  
   # Button : Mettre à jour le statut
-  observeEvent(input$updateStatus_PO,
-               {
-                 values$purchaseOrders[as.character(values$purchaseOrders$CommandID) == input$orderID_PO,]$Statut <- input$statusChoice_PO
-                 output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
-               }
-  )
-  
+  observeEvent(input$updateStatus_PO, {
+    values$purchaseOrders[as.character(values$purchaseOrders$CommandID) == input$orderID_PO, ]$Statut <- input$statusChoice_PO
+    output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
+  })
   # Button : Annuler
-  observeEvent(input$refreshBtn_PO,
-               {
-                 values$purchaseOrders<- read_sheet(link_gs, sheet = "commandes_fournisseurs")
-                 output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
-               }
-  )
-  
+  observeEvent(input$refreshBtn_PO, {
+    values$purchaseOrders<- read_sheet(link_gs, sheet = purchaseOrdersSheetName)
+    output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
+  })
   # Button : Enregistrer
-  observeEvent(input$saveBtn_PO,
-               {
-                 googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs, sheet = "commandes_fournisseurs")
-               }
-  )
-  
+  observeEvent(input$saveBtn_PO, {
+    googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs, sheet = purchaseOrdersSheetName)
+  })
+
 }
 
 shinyApp(ui, server)
