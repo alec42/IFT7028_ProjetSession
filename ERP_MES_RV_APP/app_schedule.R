@@ -12,6 +12,7 @@ library(timevis)
 library(DT)
 library(tidyverse)
 
+source("scripts/googlesheets_access.R") # get link to gs
 
 #Data to put in the schedule
 data <- data.frame(
@@ -131,18 +132,27 @@ ui <- fluidPage(
 
 # Define server logic to make the timeline appear
 server <- function(input, output) {
+  values <- reactiveValues()
+  # values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
+  values$panelDF <- panneau_df
+  values$manufacturerDF <- fournisseurs_df
+  values$todayDF <- data_today
+  values$todayGroupsDF <- data_today_groups
+  values$weekDF <- data
+  values$weekGroupsDF <- data_groups
 
   output$timeline <- renderTimevis({
     #Uncomment this one for the whole week :
     #timevis(data=data, groups=data_groups)
+    timevis(data=values$weekDF, groups=values$weekGroupsDF)
 
     #Uncomment this one for the current day :
-    timevis(data=data_today, groups=data_today_groups)
+    # timevis(data=values$todayDF, groups=values$todayGroupsDF)
   })
 
   #Comment these two if looking at whole week
-  output$table1 <- renderTable(panneau_df)  #Current day panneaux prod
-  output$table2 <- renderTable(fournisseurs_df) #Current day fournisseurs recus
+  output$table1 <- renderTable(values$panelDF)  #Current day panneaux prod
+  output$table2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
 }
 
 # Run the application
