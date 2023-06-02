@@ -1,5 +1,5 @@
 library(tidyverse)
-library(plotly)
+# library(plotly)
 library(DT)
 library(shiny)
 library(shinyjs)
@@ -12,70 +12,82 @@ library(shinyWidgets)
 ########################
 
 ui <- shinydashboard::dashboardPage(
-    header = shinydashboard::dashboardHeader(
-    ),
+  header = shinydashboard::dashboardHeader(),
 
-    ##########
-    ## Menu ##
-    ##########
-    sidebar = shinydashboard::dashboardSidebar(
-        shinydashboard::sidebarMenu(id="sidebarMenu",
-            shinydashboard::menuItem("Tableau de bord", tabName = "dashboard", icon = icon("dashboard")),
-            shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("th")),
-            shinydashboard::menuItem("Commandes client", tabName = "clientOrders", icon = icon("th")),
-            shinydashboard::menuItem("Commandes fournisseurs", tabName = "purchaseOrders", icon = icon("th")),
-            shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("th")),
-            shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("th"))
-        )
-    ),
-
-    #############
-    ## Contenu ##
-    #############
-    body = shinydashboard::dashboardBody(
-        shinyjs::useShinyjs(),
-        tags$head(tags$style(HTML(".box {overflow: scroll;}"))),
-
-        shinydashboard::tabItems(
-            shinydashboard::tabItem(tabName ="dashboard"
-            ),
-
-            shinydashboard::tabItem(tabName ="inventory"
-            ),
-
-            shinydashboard::tabItem(tabName ="clientOrders",
-                    shiny::textInput("orderID", "Numéro de commande"),
-                    shiny::selectInput("statusChoice", "Choix Statut", c("Modifiable", "Complétée",
-                                                                         "En production", "Planifiée",
-                                                                         "Commandée", "Expédiée",
-                                                                         "En attente de matériaux")),
-                    shiny::actionButton("updateStatus", "Mettre à jour le statut"),
-                    shiny::actionButton("refreshBtn", "Annuler"),
-                    shiny::actionButton("saveBtn", "Enregistrer"),
-                    DT::dataTableOutput('CustomerOrders_DT')
-            ),
-
-            shinydashboard::tabItem(tabName ="purchaseOrders",
-                shiny::textInput("orderID_PO", "Numéro de commande"),
-                shiny::selectInput("statusChoice_PO", "Choix Statut", c("Commandée", "Reçue")),
-                shiny::actionButton("updateStatus_PO", "Mettre à jour le statut"),
-                shiny::actionButton("refreshBtn_PO", "Annuler"),
-                shiny::actionButton("saveBtn_PO", "Enregistrer"),
-                DT::dataTableOutput('PurchaseOrders_DT')
-            ),
-
-            shinydashboard::tabItem(tabName ="dailyProduction",
-
-            ),
-
-            shinydashboard::tabItem(tabName ="weeklyProduction",
-
-            )
-        )
+  ##########
+  ## Menu ##
+  ##########
+  sidebar = shinydashboard::dashboardSidebar(
+    shinydashboard::sidebarMenu(id="sidebarMenu",
+      shinydashboard::menuItem("Tableau de bord", tabName = "dashboard", icon = icon("dashboard")),
+      shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("th")),
+      shinydashboard::menuItem("Commandes client", tabName = "clientOrders", icon = icon("th")),
+      shinydashboard::menuItem("Commandes fournisseurs", tabName = "purchaseOrders", icon = icon("th")),
+      shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("th")),
+      shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("th"))
     )
+  ),
+
+  #############
+  ## Contenu ##
+  #############
+  body = shinydashboard::dashboardBody(
+    shinyjs::useShinyjs(),
+    tags$head(tags$style(HTML(".box {overflow: scroll;}"))),
+
+    shinydashboard::tabItems(
+      shinydashboard::tabItem(tabName ="dashboard"
+      ),
+
+      shinydashboard::tabItem(tabName ="inventory",
+        DT::dataTableOutput('Inventory_DT')
+      ),
+
+      shinydashboard::tabItem(tabName ="clientOrders",
+        shiny::textInput("orderID", "Numéro de commande"),
+        shiny::selectInput("statusChoice", "Choix Statut", c(
+          "Modifiable", "Complétée", "En production", "Planifiée",
+          "Commandée", "Expédiée", "En attente de matériaux")
+        ),
+        shiny::actionButton("updateStatus", "Mettre à jour le statut"),
+        shiny::actionButton("refreshBtn", "Annuler"),
+        shiny::actionButton("saveBtn", "Enregistrer"),
+        DT::dataTableOutput('CustomerOrders_DT'),
+        shiny::fluidRow(
+          shinydashboardPlus::box(title = "Commandes en cours", width = 6, DT::dataTableOutput('CustomerOrders_progress_DT')),
+          shinydashboardPlus::box(title = "Commandes en attente de matériaux", width = 6, DT::dataTableOutput('CustomerOrders_waiting_materials_DT'))
+        ),
+        shiny::fluidRow(
+          shinydashboardPlus::box(title = "Commandes complétées", width = 6, DT::dataTableOutput('CustomerOrders_completed_DT')),
+          shinydashboardPlus::box(title = "Commandes en attente", width = 6, DT::dataTableOutput('CustomerOrders_pending_DT'))
+        )
+      ),
+
+      shinydashboard::tabItem(tabName ="purchaseOrders",
+        shiny::textInput("orderID_PO", "Numéro de commande"),
+        shiny::selectInput("statusChoice_PO", "Choix Statut", c("Commandée", "Reçue", "En attente d'approbation")),
+        shiny::actionButton("updateStatus_PO", "Mettre à jour le statut"),
+        shiny::actionButton("refreshBtn_PO", "Annuler"),
+        shiny::actionButton("saveBtn_PO", "Enregistrer"),
+        DT::dataTableOutput('PurchaseOrders_DT'),
+        shiny::fluidRow(
+          shinydashboardPlus::box(title = "À commander", width = 4, DT::dataTableOutput('PO_To_Order_DT')),
+          shinydashboardPlus::box(title = "En attente de réception", width = 8, DT::dataTableOutput('PO_Ordered_DT'))
+        )
+      ),
+
+      shinydashboard::tabItem(tabName ="dailyProduction",
+
+      ),
+
+      shinydashboard::tabItem(tabName ="weeklyProduction",
+
+      )
+    )
+  )
 )
 
-source("scripts/googlesheets_access.R", local = TRUE) # get link to gs
+source("scripts/googlesheets_access.R") # get link to gs
 source("scripts/interactiveDT.R", local = TRUE)
 
 ###########################
@@ -83,6 +95,8 @@ source("scripts/interactiveDT.R", local = TRUE)
 ###########################
 customerOrdersSheetName <- "commandes_clients"
 purchaseOrdersSheetName <- "commandes_fournisseurs"
+InventorySheetName <- "inventaire"
+dt_options <- list(dom = 't')
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
@@ -93,12 +107,28 @@ server <- function(input, output, session) {
   values <- reactiveValues()
   values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
   values$purchaseOrders <- read_sheet(link_gs, sheet = purchaseOrdersSheetName)
+  values$inventory <- read_sheet(link_gs, sheet = InventorySheetName)
 
   ##########################
   ## Affichage par défaut ##
   ##########################
-  output$CustomerOrders_DT <- outputDT(values$customerOrders)
-  output$PurchaseOrders_DT <- outputDT(values$purchaseOrders)
+  output$CustomerOrders_DT <- renderDT(values$customerOrders, options = dt_options, rownames = FALSE, selection = "none")
+  output$PurchaseOrders_DT <- renderDT(values$purchaseOrders, options = dt_options, rownames = FALSE, selection = "none")
+  output$Inventory_DT <- renderDT(values$inventory, options = dt_options, rownames = FALSE, selection = "none")
+
+  ######################
+  ## Tables Commandes ##
+  ######################
+  output$CustomerOrders_progress_DT <- renderDT(values$customerOrders |> filter(Statut == "En production") |> select(CommandID, NbPanneauxRequis, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_waiting_materials_DT <- renderDT(values$customerOrders |> filter(Statut == "En attente de matériaux") |> select(CommandID, NbPanneauxRequis, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_completed_DT <- renderDT(values$customerOrders |> filter(Statut %in% c("Complétée", "Expédiée")) |> select(CommandID, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_pending_DT <- renderDT(values$customerOrders |> filter(Statut == "Modifiable") |> select(CommandID, Statut), options = dt_options, rownames = FALSE, selection = "none")
+
+  #######################
+  ## Tables PO ##
+  #######################
+  output$PO_To_Order_DT <- renderDT(values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> select(CommandID, Fournisseur, Item, Quantite), options = dt_options, rownames = FALSE, selection = "none")
+  output$PO_Ordered_DT <- renderDT(values$purchaseOrders |> filter(Statut == "Commandée"), options = dt_options, rownames = FALSE, selection = "none")
 
   ##############################
   ## Menu : commandes clients ##
@@ -136,7 +166,6 @@ server <- function(input, output, session) {
   observeEvent(input$saveBtn_PO, {
     googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs, sheet = purchaseOrdersSheetName)
   })
-
 }
 
 shinyApp(ui, server)
