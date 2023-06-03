@@ -48,21 +48,6 @@ data_today_groups <- data_today %>%
   distinct() %>%
   rename(id = group, content = group2)
 
-# data_today <- data.frame()
-# data_today_groups <- data.frame()
-# for (row in 1:nrow(data)){
-#   date_to_compare = strsplit(data[row,"start"], " ")
-#   #print(date_to_compare[[1]][1])
-#   if (date_to_compare[[1]][1] == today){
-#     #print(data[row,])
-#     data_today <- rbind(data_today, data[row,])
-#     #print(c(data[row,"groups"],data[row,"groups"]))
-#     data_today_groups <- rbind(data_today_groups,c(data[row,"group"],data[row,"group"]))
-#   }
-# }
-# colnames(data_today_groups) = c("id","content")
-# data_today_groups <- data_today_groups[!duplicated(data_today_groups),]
-
 #Construct table for one day planif
 panneau_df <- data_today %>%
   filter(type == "range") %>%
@@ -73,36 +58,11 @@ panneau_df <- data_today %>%
     id = seq_along(group) - 1  #TODO :Get panneau ID from database
   )
 
-# panneau_df <- data.frame()
-# id_counter = 0
-# for (row in 1:length(data_today)){
-#   if (data_today[row,"type"] == "range"){ #Only put the panneaux in the table for panneaux
-#     #print(data_today[row,-5]) #Drop the type column
-#     new_row <- data_today[row,-5]
-#     new_row["Status"] <- "TODO"
-#     new_row["Ref"] <- paste("googleDrive\\complet\\",data_today[row,"group"],"\\",data_today[row,"content"],"\\info_file.json")
-#     #TODO : Generate the path to file correctly
-#     new_row["id"] <- id_counter #TODO :Get panneau ID from database
-#     id_counter = id_counter +  1
-#     panneau_df <- rbind(panneau_df, new_row)
-#   }
-# }
-
 #Table of entering commandes fournisseurs
 fournisseurs_df <- data_today %>%
   filter(type == "point") %>%
   select(content) %>%
   rename(Fournisseur = content)
-
-# fournisseurs_df <- data.frame()
-# for (row in 1:nrow(data_today)){
-#   #print(data_today[row,"type"])
-#   if (data_today[row,"type"] == "point"){ #Only put the panneaux in the table for panneaux
-#
-#     fournisseurs_df <- rbind(fournisseurs_df, data_today[row,"content"])
-#   }
-# }
-# colnames(fournisseurs_df) <- c("Fournisseur")
 
 #TODO : Insert button to update the status when done
   #Add loop to update the status of the commande if all panneaux are done
@@ -143,7 +103,6 @@ server <- function(input, output) {
 
   output$timeline <- renderTimevis({
     #Uncomment this one for the whole week :
-    #timevis(data=data, groups=data_groups)
     timevis(data=values$weekDF, groups=values$weekGroupsDF)
 
     #Uncomment this one for the current day :
