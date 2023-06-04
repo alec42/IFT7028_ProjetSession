@@ -170,7 +170,7 @@ server <- function(input, output, session) {
              Date_Commande = as.Date(DateCommandeCreation), 
              Date_Livraison = as.Date(DateCommandeLivraison)) |>
       filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> 
-      select(Client, Adresse, CommandeID, Prix, Items, Statut), 
+      select(CommandeID, Client, Adresse, Prix, Items, Statut), 
     options = dt_options, rownames = FALSE, selection = "none")
 
   ######################
@@ -219,7 +219,6 @@ server <- function(input, output, session) {
   ##############################
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus, {
-    print(values$items)
     values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID,]$Statut <- input$statusChoice
     output$CustomerOrders_DT <- outputDT(values$customerOrders)
   })
@@ -266,7 +265,7 @@ server <- function(input, output, session) {
   ####################### 
   
   # Button : Détails de la commande
-  observeEvent(input$details_exp, {
+  observeEvent(input$orderID_exp, {
     output$ExpeditionDetails_DT <- renderDT(
       values$customerOrders |> 
         mutate(Items = str_extract_all(Items, "\\d+:\\d+")) |>
@@ -277,6 +276,37 @@ server <- function(input, output, session) {
         select(CommandeID, Type, Nom, Dimensions, Quantity) |>
         filter(as.character(CommandeID) == input$orderID_exp),
       options = dt_options, rownames = FALSE, selection = "none")
+  })
+  
+  # Button : Mettre à jour le statut
+  observeEvent(input$updateStatus_exp, {
+    values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID_exp,]$Statut <- input$statusChoice_exp
+    output$Expedition_DT <- renderDT(
+      values$customerOrders |> left_join(values$clients, by = join_by(ClientID == ClientID)) |>
+        mutate(Client = paste(Prenom, ' ', Nom), 
+               Date_Commande = as.Date(DateCommandeCreation), 
+               Date_Livraison = as.Date(DateCommandeLivraison)) |>
+        filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> 
+        select(Client, Adresse, CommandeID, Prix, Items, Statut), 
+      options = dt_options, rownames = FALSE, selection = "none")
+  })
+  
+  # Button : Annuler
+  observeEvent(input$refreshBtn_exp, {
+    values$customerOrders<- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
+    output$Expedition_DT <- renderDT(
+      values$customerOrders |> left_join(values$clients, by = join_by(ClientID == ClientID)) |>
+        mutate(Client = paste(Prenom, ' ', Nom), 
+               Date_Commande = as.Date(DateCommandeCreation), 
+               Date_Livraison = as.Date(DateCommandeLivraison)) |>
+        filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> 
+        select(Client, Adresse, CommandeID, Prix, Items, Statut), 
+      options = dt_options, rownames = FALSE, selection = "none")
+  })
+  
+  # Button : Enregistrer
+  observeEvent(input$saveBtn_exp, {
+    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
   })
 }
 
