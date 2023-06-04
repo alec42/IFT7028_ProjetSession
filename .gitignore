@@ -3,5 +3,5 @@ rsconnect/
 .RData
 *.DS_STORE
 .secrets/
-
 .Rproj.user
+.secrets
