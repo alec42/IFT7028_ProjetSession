@@ -46,8 +46,9 @@ ui <- shinydashboard::dashboardPage(
       shinydashboard::tabItem(tabName ="clientOrders",
         shiny::textInput("orderID", "Numéro de commande"),
         shiny::selectInput("statusChoice", "Choix Statut", c(
-          "Modifiable", "Complétée", "En production", "Planifiée",
-          "Commandée", "Expédiée", "En attente de matériaux")
+          "Modifiable", "En production", "Planifiée",
+          "Commandée", "En attente de matériaux", "Complétée",
+          "Emballée", "En livraison", "Livrée")
         ),
         shiny::actionButton("updateStatus", "Mettre à jour le statut"),
         shiny::actionButton("refreshBtn", "Annuler"),
@@ -93,7 +94,7 @@ source("scripts/interactiveDT.R", local = TRUE)
 ###########################
 ## Onglets Google Sheets ##
 ###########################
-customerOrdersSheetName <- "commandes_clients"
+customerOrdersSheetName <- "Commandes"
 purchaseOrdersSheetName <- "commandes_fournisseurs"
 InventorySheetName <- "inventaire"
 dt_options <- list(dom = 't')
@@ -105,7 +106,7 @@ server <- function(input, output, session) {
   ## Données réactives ##
   #######################
   values <- reactiveValues()
-  values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
+  values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
   values$purchaseOrders <- read_sheet(link_gs, sheet = purchaseOrdersSheetName)
   values$inventory <- read_sheet(link_gs, sheet = InventorySheetName)
 
@@ -119,14 +120,14 @@ server <- function(input, output, session) {
   ######################
   ## Tables Commandes ##
   ######################
-  output$CustomerOrders_progress_DT <- renderDT(values$customerOrders |> filter(Statut == "En production") |> select(CommandID, NbPanneauxRequis, Statut), options = dt_options, rownames = FALSE, selection = "none")
-  output$CustomerOrders_waiting_materials_DT <- renderDT(values$customerOrders |> filter(Statut == "En attente de matériaux") |> select(CommandID, NbPanneauxRequis, Statut), options = dt_options, rownames = FALSE, selection = "none")
-  output$CustomerOrders_completed_DT <- renderDT(values$customerOrders |> filter(Statut %in% c("Complétée", "Expédiée")) |> select(CommandID, Statut), options = dt_options, rownames = FALSE, selection = "none")
-  output$CustomerOrders_pending_DT <- renderDT(values$customerOrders |> filter(Statut == "Modifiable") |> select(CommandID, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_progress_DT <- renderDT(values$customerOrders |> filter(Statut == "En production") |> select(CommandeID, Items, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_waiting_materials_DT <- renderDT(values$customerOrders |> filter(Statut == "En attente de matériaux") |> select(CommandeID, Items, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_completed_DT <- renderDT(values$customerOrders |> filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> select(CommandeID, Items, Statut), options = dt_options, rownames = FALSE, selection = "none")
+  output$CustomerOrders_pending_DT <- renderDT(values$customerOrders |> filter(Statut == "Modifiable") |> select(CommandeID, Statut), options = dt_options, rownames = FALSE, selection = "none")
 
-  #######################
+  ###############
   ## Tables PO ##
-  #######################
+  ###############
   output$PO_To_Order_DT <- renderDT(values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> select(CommandID, Fournisseur, Item, Quantite), options = dt_options, rownames = FALSE, selection = "none")
   output$PO_Ordered_DT <- renderDT(values$purchaseOrders |> filter(Statut == "Commandée"), options = dt_options, rownames = FALSE, selection = "none")
 
@@ -135,17 +136,17 @@ server <- function(input, output, session) {
   ##############################
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus, {
-    values$customerOrders[as.character(values$customerOrders$CommandID) == input$orderID,]$Statut <- input$statusChoice
+    values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID,]$Statut <- input$statusChoice
     output$CustomerOrders_DT <- outputDT(values$customerOrders)
   })
   # Button : Annuler
   observeEvent(input$refreshBtn, {
-    values$customerOrders<- read_sheet(link_gs, sheet = customerOrdersSheetName)
+    values$customerOrders<- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
     output$CustomerOrders_DT <- outputDT(values$customerOrders)
   })
   # Button : Enregistrer
   observeEvent(input$saveBtn, {
-    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs, sheet = customerOrdersSheetName)
+    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
   })
 
 
