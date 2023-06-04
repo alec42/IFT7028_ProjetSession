@@ -20,8 +20,8 @@ ui <- shinydashboard::dashboardPage(
   ##########
   sidebar = shinydashboard::dashboardSidebar(
     shinydashboard::sidebarMenu(id="sidebarMenu",
-      shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("list-alt")),
       shinydashboard::menuItem("Tableau de bord", tabName = "clientOrders", icon = icon("dashboard")), # was commandes client
+      shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("list-alt")),
       shinydashboard::menuItem("Réception (fournisseurs)", tabName = "purchaseOrders", icon = icon("envelope")),
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("road")),
       shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("calendar")),
@@ -40,7 +40,6 @@ ui <- shinydashboard::dashboardPage(
       shinydashboard::tabItem(tabName ="inventory",
         shinydashboardPlus::box(title="Ajouter un nouvel item", width = 12,
           splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                      #shiny::numericInput("inventory_itemIDSelect", "ItemID", value = 8), # hardcode max + 1
                       shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
                       shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
                       shiny::textInput("inventory_NameSelect", "Nom d'item")
@@ -53,23 +52,20 @@ ui <- shinydashboard::dashboardPage(
           ),
           shiny::actionButton("AddInventoryBtn", "Confirmer et ajouter")
         ),
-        DT::dataTableOutput('Inventory_DT')
+        shinydashboardPlus::box(title = "Liste d'items disponibles", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary", DT::dataTableOutput('Items_DT')),
+        shinydashboardPlus::box(title = "Inventaire actuel", width = 12, collapsible = F, solidHeader = TRUE, status = "success", DT::dataTableOutput('Inventory_DT'))
       ),
 
       shinydashboard::tabItem(tabName ="clientOrders",
-        splitLayout(cellWidths = c("0", "25%", "25%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-          shiny::textInput("orderID", "Numéro de commande"),
-          shiny::selectInput("statusChoice", "Choix Statut", c(
-            "Modifiable", "En production", "Planifiée",
-            "Commandée", "En attente de matériaux", "Complétée",
-            "Emballée", "En livraison", "Livrée"))),
-        shiny::actionButton("updateStatus", "Mettre à jour les tables"),
-        shiny::actionButton("refreshBtn", "Annuler"),
-        shiny::actionButton("saveBtn", "Enregistrer"),
-        br(),br(),
         shiny::fluidRow(
           shinydashboardPlus::box(title = "Toutes les commandes", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary",
             DT::dataTableOutput('CustomerOrders_DT'))),
+        shiny::fluidRow(
+          shinydashboardPlus::box(title = "Revenus", width = 6, solidHeader = TRUE, background = "olive",
+                                  shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("RevenueTotal"))),
+          shinydashboardPlus::box(title = "Dépenses", width = 6, solidHeader = TRUE, background = "maroon",
+                                  shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CostsTotal")))
+        ),
         shiny::fluidRow(
           shinydashboardPlus::box(title = "Commandes en production", width = 4, solidHeader = TRUE, status = "warning",
             DT::dataTableOutput('CustomerOrders_progress_DT'),
@@ -82,10 +78,17 @@ ui <- shinydashboard::dashboardPage(
             footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CompletedOrdersTotal")))
         ),
         shiny::fluidRow(
-          shinydashboardPlus::box(title = "Matériaux en attentes pour commandes", solidHeader = TRUE, status = "success", width = 12,
-            DT::dataTableOutput('CustomerOrders_waiting_materials_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "commandes en attente de matériaux", header = textOutput("WaitingOrdersTotal"))))
-        ),
+          shinydashboardPlus::box(title = "Commandes en attente d'approbation", width = 4, solidHeader = TRUE, status = "success",
+            DT::dataTableOutput('POs_pending_DT'),
+            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("PendingPOsTotal"))),
+          shinydashboardPlus::box(title = "Commandes envoyées", width = 4, solidHeader = TRUE, status = "success",
+            DT::dataTableOutput('POs_sent_DT'),
+            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("SentPOsTotal"))),
+          shinydashboardPlus::box(title = "Commandes Reçues", width = 4, solidHeader = TRUE, status = "success",
+            DT::dataTableOutput('POs_received_DT'),
+            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("ReceivedPOsTotal")))
+        )
+      ),
 
       shinydashboard::tabItem(tabName ="purchaseOrders",
         splitLayout(cellWidths = c("0", "25%", "25%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
@@ -104,15 +107,13 @@ ui <- shinydashboard::dashboardPage(
         ),
         shiny::fluidRow(
           shinydashboardPlus::box(title = "En attente de réception", width = 12, solidHeader = TRUE, status = "warning", DT::dataTableOutput('PO_Ordered_DT'))
-        ),
+        )
       ),
 
-      shinydashboard::tabItem(tabName ="dailyProduction",
-
+      shinydashboard::tabItem(tabName ="dailyProduction"
       ),
 
-      shinydashboard::tabItem(tabName ="weeklyProduction",
-
+      shinydashboard::tabItem(tabName ="weeklyProduction"
       ),
 
       shinydashboard::tabItem(tabName = "expedition",
@@ -180,20 +181,23 @@ server <- function(input, output, session) {
   output$CustomerOrders_DT <- renderDT(
     values$customerOrders |> left_join(values$clients, by = "ClientID") |>
       mutate(Client = paste(Prenom, ' ', Nom), Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison)) |>
-      rename(ID = CommandeID) |> select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
+      select(CommandeID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Commandes Fournisseurs - Default
   output$PurchaseOrders_DT <- renderDT(
     values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception)) |>
-      rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee, Date_Reception),
+      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee, Date_Reception),
     options = dt_options, rownames = FALSE, selection = "none")
 
 
   #######################
   ## Menu : inventaire ##
   #######################
-  #
+  output$Items_DT <- renderDT(
+    values$items,
+    rownames = FALSE, selection = "none"
+  )
   output$Inventory_DT <- renderDT(
     values$inventory |>
       left_join(values$customerOrders |>
@@ -259,63 +263,69 @@ server <- function(input, output, session) {
   ######################
   #
   output$CustomerOrders_progress_DT <- renderDT(
-    values$customerOrders |> filter(Statut == "En production") |> rename(ID = CommandeID) |> select(ID, Statut),
+    values$customerOrders |> filter(Statut == "En production") |> select(CommandeID, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$ProgessOrdersTotal <- renderText({
     nrow(values$customerOrders |> filter(Statut == "En production"))
   })
-  output$CustomerOrders_waiting_materials_DT <- renderDT(
-    values$customerOrders |> filter(Statut == "En attente de matériaux") |>
-      mutate(Date_Commandee = as.Date(DateCommandeCreation), Items = str_extract_all(Items, "\\d+:\\d+")) |> unnest(Items) |> separate(Items, into = c("ItemID", "Quantity"), sep = ":") |> mutate(across(c(ItemID, Quantity), as.integer)) |>
-      left_join(values$items, by = 'ItemID') |> select(CommandeID, Date_Commandee, Nom, Type, Quantity),
-    options = dt_options, rownames = FALSE, selection = "none")
-  output$WaitingOrdersTotal <- renderText({
-    nrow(values$customerOrders |> filter(Statut == "En attente de matériaux"))
-  })
-  #
   output$CustomerOrders_completed_DT <- renderDT(
     values$customerOrders |>
-      filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> rename(ID = CommandeID) |> select(ID, Statut),
+      filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> select(CommandeID, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$CompletedOrdersTotal <- renderText({
     nrow(values$customerOrders |> filter(Statut %in% c("Complétée", "Emballée", "En livraison")))
   })
   #
   output$CustomerOrders_pending_DT <- renderDT(
-    values$customerOrders |> filter(Statut == "Modifiable") |> rename(ID = CommandeID) |> select(ID, Statut),
+    values$customerOrders |> filter(Statut == "Modifiable") |> select(CommandeID, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$PendingOrdersTotal <- renderText({
     nrow(values$customerOrders |> filter(Statut == "Modifiable"))
   })
 
+
   ###############
   ## Tables PO ##
   ###############
   output$PO_To_Order_DT <- renderDT(
-    values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> rename(ID = CommandeFournisseurID) |>
+    values$purchaseOrders |> filter(Statut == "En attente d'approbation") |>
       left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix)) |>
-      select(ID, Fournisseur, Nom, Prix, Quantité, Statut),
+      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$PO_Ordered_DT <- renderDT(
     values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(values$items, by = "ItemID") |>
-      rename(ID = CommandeFournisseurID) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |>
-      select(ID, Nom, Quantité, Date_Commandee, Statut),
+      mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |>
+      select(CommandeFournisseurID, Nom, Quantité, Date_Commandee, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
+  ## Dashboard
+  output$POs_pending_DT <- renderDT(
+    values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> select(CommandeFournisseurID, Statut),
+    options = dt_options, rownames = FALSE, selection = "none")
+  output$PendingPOsTotal <- renderText({
+    nrow(values$purchaseOrders |> filter(Statut == "En attente d'approbation"))
+  })
+  output$POs_received_DT <- renderDT(
+    values$purchaseOrders |> filter(Statut == "Reçu") |> select(CommandeFournisseurID, Statut),
+    options = dt_options, rownames = FALSE, selection = "none")
+  output$ReceivedPOsTotal <- renderText({
+    nrow(values$purchaseOrders |> filter(Statut == "Reçu"))
+  })
+  #
+  output$POs_sent_DT <- renderDT(
+    values$purchaseOrders |> filter(Statut == "Commandée") |> select(CommandeFournisseurID, Statut),
+    options = dt_options, rownames = FALSE, selection = "none")
+  output$SentPOsTotal <- renderText({
+    nrow(values$purchaseOrders |> filter(Statut == "Commandée"))
+  })
 
   ##############################
-  ## Menu : commandes clients ##
+  ## Menu : Dashboard ##
   ##############################
-  # Button : Mettre à jour le statut
-  observeEvent(input$updateStatus, {
-    values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID,]$Statut <- input$statusChoice
+  output$RevenueTotal <- renderText({
+    scales::dollar(sum((values$purchaseOrders |> left_join(values$items, 'ItemID') |> mutate(Cout = Prix * Quantité))$Cout))
   })
-  # Button : Annuler
-  observeEvent(input$refreshBtn, {
-    values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
-  })
-  # Button : Enregistrer
-  observeEvent(input$saveBtn, {
-    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
+  output$CostsTotal <- renderText({
+    scales::dollar(sum(values$customerOrders$Prix))
   })
 
 
@@ -325,18 +335,10 @@ server <- function(input, output, session) {
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus_PO, {
     values$purchaseOrders[as.character(values$purchaseOrders$CommandeFournisseurID) == input$orderID_PO, ]$Statut <- input$statusChoice_PO
-    # output$PurchaseOrders_DT <- renderDT(
-    #   values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
-    #     rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
-    #   options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Annuler
   observeEvent(input$refreshBtn_PO, {
     values$purchaseOrders<- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
-    # output$PurchaseOrders_DT <- renderDT(
-    #   values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
-    #     rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
-    #   options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Enregistrer
   observeEvent(input$saveBtn_PO, {
