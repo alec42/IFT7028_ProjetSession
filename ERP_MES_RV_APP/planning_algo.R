@@ -105,6 +105,7 @@ plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_
         #new_inv
         inventory[[day_idx]]<- new_inv
         #inventory[[day_idx]]
+        #print(inventory)
         
         #Update status to En prod if this commande is done on prod day
         #print(Commande)
@@ -259,15 +260,15 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
   
   #Loop on each day one at a time
   for (j in 1:length(plan_times)){ 
-    #if (j >= 3){
-    #  return(1)
-    #}
     print(j)
-    #print(plan_times[[j]])
-    inv_today <- inventory[[j]]#[2][[1]]
-    #print(inv_today)
-    #print(inventory)
-    #inventory[[1]]
+    
+    #Update next inventory if null
+    if (is.null(inventory[[j]])){
+      inventory[[j]] <- inventory[[j-1]]
+    }
+    #Get today's inventory
+    inv_today <- inventory[[j]]
+    
     
     #Get fournisseurs receptions for today if any
     fournisseurs_today = CommandesFournisseurs %>% filter(DateReception == plan_times[[j]])#, Statut == "En attente") #mutate(DateReception = as.Date(DateReception)) #%>% filter("DateReception" == plan_times[[j]])
@@ -359,11 +360,13 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
           Commande[Commande["CommandeID"] == commande[["CommandeID"]],"Statut"] = "Attente d'inventaire"
           
         }
+      
       }
+      #Update inventory for the next commande
+      inv_today <- inventory[[j]]
+    
       
-      
-      
-    } #Here we got all the commandes we can start today
+    } 
     
     #Plan according to the list of planned_today -- this also updates the inventory and commande status
     #print(inventory)
@@ -417,7 +420,7 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
 
 
 #today = "2023-06-01"
-#MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, CommandeDetail, today, max_range = 5, buffer = 2, nb_machines = 1)
+#MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, CommandeDetail, today, max_range = 5, buffer = 2, nb_machines = 2)
 
 #Commande <- MES_output[[1]]
 #Inventaire <- MES_output[[2]][[1]]

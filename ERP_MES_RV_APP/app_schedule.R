@@ -35,7 +35,7 @@ CommandeDetail <- data.frame(
   PanneauID = c("1-P1-1","1-P1-2","1-P2-1","1-P3-1",
                 "2-P1-1","2-P1-2","2-P2-1","2-P3-1","2-P3-2", 
                 "3-P1-1","3-P2-1","3-P3-1",
-                "4-P1-1","4-P1-2","4-P2-1","4-P3-1","4-P3-1"),
+                "4-P1-1","4-P1-2","4-P2-1","4-P3-1","4-P3-2"),
   PanneauType = c("P1","P2","P2","P3",
                   "P1","P1","P2","P3","P3",
                   "P1","P2","P3",
@@ -67,7 +67,8 @@ CommandesFournisseurs <- data.frame(
 today = "2023-06-01"
 MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, CommandeDetail, today, max_range = 6, buffer = 2, nb_machines = 1)
 
-#Updat the real data tables
+#Update the real data tables
+#MES_output[[4]]
 Commande <- MES_output[[1]]
 Inventaire <- MES_output[[2]][[1]]
 CommandesFournisseurs <- MES_output[[3]]
@@ -77,7 +78,7 @@ data <- MES_output[[4]]
 data_groups <- MES_output[[5]]
 
 # ------------- Generating tables from planning -------------------------
-
+data
 #Get today prod -- for timeline
 data_today <- data %>%
   filter(str_split_i(start, " ", 1) == today)
