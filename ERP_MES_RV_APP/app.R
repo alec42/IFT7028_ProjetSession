@@ -124,7 +124,7 @@ source("scripts/interactiveDT.R", local = TRUE)
 customerOrdersSheetName <- "Commandes"
 purchaseOrdersSheetName <- "CommandesFournisseurs"
 itemsSheetName <- "Items"
-InventorySheetName <- "inventaire"
+InventorySheetName <- "Inventaire"
 clientsSheetName <- "Clients"
 dt_options <- list(dom = 't')
 
@@ -137,7 +137,7 @@ server <- function(input, output, session) {
   values <- reactiveValues()
   values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
   values$purchaseOrders <- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
-  values$inventory <- read_sheet(link_gs, sheet = InventorySheetName)
+  values$inventory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
   values$items <- read_sheet(link_gs_erp, sheet = itemsSheetName)
   values$clients <- read_sheet(link_gs_erp, sheet = clientsSheetName)
 
@@ -161,7 +161,23 @@ server <- function(input, output, session) {
     options = dt_options, rownames = FALSE, selection = "none")
   
   # Inventaire - Default
-  output$Inventory_DT <- renderDT(values$inventory, options = dt_options, rownames = FALSE, selection = "none")
+  output$Inventory_DT <- renderDT(
+    values$inventory |> 
+    left_join(customerOrders |>
+                filter(Statut %in% c("Commandée", "En attente de matériaux")) %>%
+                mutate(Items = str_extract_all(Items, "\\d+:\\d+")) %>%
+                unnest(Items) %>%
+                separate(Items, into = c("ItemID", "Quantity"), sep = ":") %>%
+                mutate(across(c(ItemID, Quantity), as.integer)) |>
+                select(ItemID, Quantity) |>
+                group_by(ItemID) |> summarise(Quantité_Requise = sum(Quantity)),
+              by = join_by(ItemID == ItemID)) |>
+    left_join(fournisseurOrders |>
+                filter(Statut %in% c("En attente d'approbation", "Commandée")) |>
+                select(ItemID, Quantité) |>
+                group_by(ItemID) |> summarise(Quantité_Commandée = sum(Quantité)),
+              by = join_by(ItemID == ItemID)), 
+    options = dt_options, rownames = FALSE, selection = "none")
   
   # Expédition - Default
   output$Expedition_DT <- renderDT(
@@ -308,6 +324,14 @@ server <- function(input, output, session) {
   observeEvent(input$saveBtn_exp, {
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
   })
+  
+  
+  #######################
+  ## Menu : inventaire ##
+  ####################### 
+  
+  
+  
 }
 
 shinyApp(ui, server)
