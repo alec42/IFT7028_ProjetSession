@@ -295,20 +295,10 @@ server <- function(input, output, session) {
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus, {
     values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID,]$Statut <- input$statusChoice
-    output$CustomerOrders_DT <- renderDT(
-      values$customerOrders |> left_join(values$clients, by = "ClientID") |>
-        mutate(Client = paste(Prenom, ' ', Nom), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison), Prix = scales::dollar(Prix)) |> rename(ID = CommandeID) |>
-        select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
-      options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Annuler
   observeEvent(input$refreshBtn, {
     values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
-    output$CustomerOrders_DT <- renderDT(
-      values$customerOrders |> left_join(values$clients, by = "ClientID") |>
-        mutate(Client = paste(Prenom, ' ', Nom), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison), Prix = scales::dollar(Prix)) |> rename(ID = CommandeID) |>
-        select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
-      options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Enregistrer
   observeEvent(input$saveBtn, {
@@ -322,18 +312,18 @@ server <- function(input, output, session) {
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus_PO, {
     values$purchaseOrders[as.character(values$purchaseOrders$CommandeFournisseurID) == input$orderID_PO, ]$Statut <- input$statusChoice_PO
-    output$PurchaseOrders_DT <- renderDT(
-      values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
-        rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
-      options = dt_options, rownames = FALSE, selection = "none")
+    # output$PurchaseOrders_DT <- renderDT(
+    #   values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
+    #     rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
+    #   options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Annuler
   observeEvent(input$refreshBtn_PO, {
     values$purchaseOrders<- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
-    output$PurchaseOrders_DT <- renderDT(
-      values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
-        rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
-      options = dt_options, rownames = FALSE, selection = "none")
+    # output$PurchaseOrders_DT <- renderDT(
+    #   values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
+    #     rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
+    #   options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Enregistrer
   observeEvent(input$saveBtn_PO, {
