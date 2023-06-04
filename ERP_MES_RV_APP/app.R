@@ -120,7 +120,7 @@ server <- function(input, output, session) {
   ##########################
   output$CustomerOrders_DT <- renderDT(values$customerOrders, options = dt_options, rownames = FALSE, selection = "none")
   output$PurchaseOrders_DT <- renderDT(
-    values$purchaseOrders |> left_join(items, by = join_by(Items == ItemID)) |>
+    values$purchaseOrders |> left_join(values$items, by = join_by(Items == ItemID)) |>
       rename(ID = CommandeFournisseurID) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Livraison = as.Date(DateCommandeFReception)) |>
       select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Livraison),
     options = dt_options, rownames = FALSE, selection = "none")
@@ -142,7 +142,7 @@ server <- function(input, output, session) {
       left_join(items, by = join_by(Items == ItemID)) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$PO_Ordered_DT <- renderDT(
-    values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(items, by = join_by(Items == ItemID)) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |> select(CommandeFournisseurID, Nom, Quantité, Date_Commandee, Statut),
+    values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(values$items, by = join_by(Items == ItemID)) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |> select(CommandeFournisseurID, Nom, Quantité, Date_Commandee, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
 
   ##############################
