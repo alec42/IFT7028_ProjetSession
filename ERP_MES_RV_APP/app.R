@@ -38,22 +38,24 @@ ui <- shinydashboard::dashboardPage(
 
     shinydashboard::tabItems(
       shinydashboard::tabItem(tabName ="inventory",
-        shinydashboardPlus::box(title="Ajouter un nouvel item", width = 12,
-          splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                      shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
-                      shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
-                      shiny::textInput("inventory_NameSelect", "Nom d'item")
+        shiny::fluidRow(
+          shinydashboardPlus::box(title="Ajouter un nouvel item", width = 12,
+            splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
+                        shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
+                        shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
+                        shiny::textInput("inventory_NameSelect", "Nom d'item")
+            ),
+            splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
+                        shiny::textInput("inventory_DescriptionSelect", "Description de l'item"),
+                        shiny::textInput("inventory_TypeSelect", "Type d'item"),
+                        shiny::textInput("inventory_DimensionsSelect", "Dimensions (entrer en crochets si planche)", placeholder = "[H;W;L]"), # conditionnel??
+                        shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
+            ),
+            shiny::actionButton("AddInventoryBtn", "Confirmer et ajouter")
           ),
-          splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                      shiny::textInput("inventory_DescriptionSelect", "Description de l'item"),
-                      shiny::textInput("inventory_TypeSelect", "Type d'item"),
-                      shiny::textInput("inventory_DimensionsSelect", "Dimensions (entrer en crochets si planche)", placeholder = "[H;W;L]"), # conditionnel??
-                      shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
-          ),
-          shiny::actionButton("AddInventoryBtn", "Confirmer et ajouter")
-        ),
-        shinydashboardPlus::box(title = "Liste d'items disponibles", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary", DT::dataTableOutput('Items_DT')),
-        shinydashboardPlus::box(title = "Inventaire actuel", width = 12, collapsible = F, solidHeader = TRUE, status = "success", DT::dataTableOutput('Inventory_DT'))
+          shinydashboardPlus::box(title = "Liste d'items disponibles", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary", DT::dataTableOutput('Items_DT')),
+          shinydashboardPlus::box(title = "Inventaire actuel", width = 12, collapsible = F, solidHeader = TRUE, status = "success", DT::dataTableOutput('Inventory_DT'))
+        )
       ),
 
       shinydashboard::tabItem(tabName ="clientOrders",
@@ -218,7 +220,7 @@ server <- function(input, output, session) {
     options = dt_options, rownames = FALSE, selection = "none")
   #
   observeEvent(input$AddInventoryBtn, {
-    values$items <- values$items |> add_row(ItemID = nrow(values$items) + 1, 
+    values$items <- values$items |> add_row(ItemID = nrow(values$items) + 1,
                                             Fournisseur = input$inventory_FournisseurSelect,
                                             Prix = input$inventory_PrixSelect,
                                             Nom = input$inventory_NameSelect,
