@@ -71,9 +71,11 @@ ui <- shinydashboard::dashboardPage(
         shiny::actionButton("saveBtn_PO", "Enregistrer"),
         DT::dataTableOutput('PurchaseOrders_DT'),
         shiny::fluidRow(
-          shinydashboardPlus::box(title = "À commander", width = 4, DT::dataTableOutput('PO_To_Order_DT')),
-          shinydashboardPlus::box(title = "En attente de réception", width = 8, DT::dataTableOutput('PO_Ordered_DT'))
-        )
+          shinydashboardPlus::box(title = "À commander", width = 12, DT::dataTableOutput('PO_To_Order_DT'))
+        ),
+        shiny::fluidRow(
+          shinydashboardPlus::box(title = "En attente de réception", width = 12, DT::dataTableOutput('PO_Ordered_DT'))
+        ),
       ),
 
       shinydashboard::tabItem(tabName ="dailyProduction",
@@ -94,7 +96,8 @@ source("scripts/interactiveDT.R", local = TRUE)
 ## Onglets Google Sheets ##
 ###########################
 customerOrdersSheetName <- "commandes_clients"
-purchaseOrdersSheetName <- "commandes_fournisseurs"
+purchaseOrdersSheetName <- "CommandesFournisseurs"
+itemsSheetName <- "Items"
 InventorySheetName <- "inventaire"
 dt_options <- list(dom = 't')
 
@@ -106,14 +109,19 @@ server <- function(input, output, session) {
   #######################
   values <- reactiveValues()
   values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
-  values$purchaseOrders <- read_sheet(link_gs, sheet = purchaseOrdersSheetName)
+  values$purchaseOrders <- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
   values$inventory <- read_sheet(link_gs, sheet = InventorySheetName)
+  values$items <- read_sheet(link_gs_erp, sheet = itemsSheetName)
 
   ##########################
   ## Affichage par défaut ##
   ##########################
   output$CustomerOrders_DT <- renderDT(values$customerOrders, options = dt_options, rownames = FALSE, selection = "none")
-  output$PurchaseOrders_DT <- renderDT(values$purchaseOrders, options = dt_options, rownames = FALSE, selection = "none")
+  output$PurchaseOrders_DT <- renderDT(
+    values$purchaseOrders |> left_join(items, by = join_by(Items == ItemID)) |>
+      rename(ID = CommandeFournisseurID) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Livraison = as.Date(DateCommandeFReception)) |>
+      select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Livraison),
+    options = dt_options, rownames = FALSE, selection = "none")
   output$Inventory_DT <- renderDT(values$inventory, options = dt_options, rownames = FALSE, selection = "none")
 
   ######################
@@ -127,8 +135,13 @@ server <- function(input, output, session) {
   #######################
   ## Tables PO ##
   #######################
-  output$PO_To_Order_DT <- renderDT(values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> select(CommandID, Fournisseur, Item, Quantite), options = dt_options, rownames = FALSE, selection = "none")
-  output$PO_Ordered_DT <- renderDT(values$purchaseOrders |> filter(Statut == "Commandée"), options = dt_options, rownames = FALSE, selection = "none")
+  output$PO_To_Order_DT <- renderDT(
+    values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> rename(ID = CommandeFournisseurID)
+      left_join(items, by = join_by(Items == ItemID)) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut),
+    options = dt_options, rownames = FALSE, selection = "none")
+  output$PO_Ordered_DT <- renderDT(
+    values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(items, by = join_by(Items == ItemID)) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |> select(CommandeFournisseurID, Nom, Quantité, Date_Commandee, Statut),
+    options = dt_options, rownames = FALSE, selection = "none")
 
   ##############################
   ## Menu : commandes clients ##
