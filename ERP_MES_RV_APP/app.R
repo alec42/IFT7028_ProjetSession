@@ -24,7 +24,9 @@ ui <- shinydashboard::dashboardPage(
       shinydashboard::menuItem("Commandes client", tabName = "clientOrders", icon = icon("th")),
       shinydashboard::menuItem("Commandes fournisseurs", tabName = "purchaseOrders", icon = icon("th")),
       shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("th")),
-      shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("th"))
+      shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("th")),
+      shinydashboard::menuItem("Expédition", tabName = "expedition", icon = icon("road"))
+      
     )
   ),
 
@@ -85,7 +87,19 @@ ui <- shinydashboard::dashboardPage(
 
       shinydashboard::tabItem(tabName ="weeklyProduction",
 
+      ),
+      
+      shinydashboard::tabItem(tabName = "expedition",
+                              shiny::textInput("orderID_exp", "Numéro de commande"),
+                              shiny::selectInput("statusChoice_exp", "Choisir un statut", c("Complétée","Emballée","En livraison", "Livrée")),
+                              shiny::actionButton("details_exp", "Détails de la commande"),
+                              shiny::actionButton("updateStatus_exp", "Mettre à jour le statut"),
+                              shiny::actionButton("refreshBtn_exp", "Annuler"),
+                              shiny::actionButton("saveBtn_exp", "Enregistrer"),
+                              DT::dataTableOutput('Expedition_DT'),
+                              DT::dataTableOutput('ExpeditionDetails_DT')
       )
+      
     )
   )
 )
@@ -138,6 +152,16 @@ server <- function(input, output, session) {
   
   # Inventaire - Default
   output$Inventory_DT <- renderDT(values$inventory, options = dt_options, rownames = FALSE, selection = "none")
+  
+  # Expédition - Default
+  output$Expedition_DT <- renderDT(
+    values$customerOrders |> left_join(values$clients, by = join_by(ClientID == ClientID)) |>
+      mutate(Client = paste(Prenom, ' ', Nom), 
+             Date_Commande = as.Date(DateCommandeCreation), 
+             Date_Livraison = as.Date(DateCommandeLivraison)) |>
+      filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> 
+      select(Client, Adresse, CommandeID, Prix, Items, Statut), 
+    options = dt_options, rownames = FALSE, selection = "none")
 
   ######################
   ## Tables Commandes ##
@@ -213,6 +237,25 @@ server <- function(input, output, session) {
   # Button : Enregistrer
   observeEvent(input$saveBtn_PO, {
     googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs, sheet = purchaseOrdersSheetName)
+  })
+  
+  
+  #######################
+  ## Menu : expédition ##
+  ####################### 
+  
+  # Button : Détails de la commande
+  observeEvent(input$details_exp, {
+    output$ExpeditionDetails_DT <- renderDT(
+      values$customerOrders |> 
+        mutate(Items = str_extract_all(Items, "\\d+:\\d+")) |>
+        unnest(Items) |>
+        separate(Items, into = c("ItemID", "Quantity"), sep = ":") |>
+        mutate(across(c(ItemID, Quantity), as.integer)) |> 
+        left_join(values$items, by = 'ItemID') |> 
+        select(CommandeID, Type, Nom, Dimensions, Quantity) |>
+        filter(as.character(CommandeID) == input$orderID_exp),
+      options = dt_options, rownames = FALSE, selection = "none")
   })
 }
 
