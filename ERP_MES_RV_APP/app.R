@@ -6,7 +6,7 @@ library(scales)
 library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
-library(shinyWidgets)
+# library(shinyWidgets)
 
 ##########################
 # Interface Utilisateur #
@@ -20,9 +20,8 @@ ui <- shinydashboard::dashboardPage(
   ##########
   sidebar = shinydashboard::dashboardSidebar(
     shinydashboard::sidebarMenu(id="sidebarMenu",
-      shinydashboard::menuItem("Tableau de bord", tabName = "dashboard", icon = icon("dashboard")),
       shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("list-alt")),
-      shinydashboard::menuItem("Commandes client", tabName = "clientOrders", icon = icon("usd")),
+      shinydashboard::menuItem("Tableau de bord", tabName = "clientOrders", icon = icon("dashboard")), # was commandes client
       shinydashboard::menuItem("Réception (fournisseurs)", tabName = "purchaseOrders", icon = icon("envelope")),
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("road")),
       shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("calendar")),
@@ -38,10 +37,22 @@ ui <- shinydashboard::dashboardPage(
     tags$head(tags$style(HTML(".box {overflow: scroll;}"))),
 
     shinydashboard::tabItems(
-        shinydashboard::tabItem(tabName ="dashboard"
-      ),
-
       shinydashboard::tabItem(tabName ="inventory",
+        shinydashboardPlus::box(title="Ajouter un nouvel item", width = 12,
+          splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
+                      shiny::numericInput("inventory_itemIDSelect", "ItemID", value = 8), # hardcode max + 1
+                      shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
+                      shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
+                      shiny::textInput("inventory_NameSelect", "Nom d'item")
+          ),
+          splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
+                      shiny::textInput("inventory_DescriptionSelect", "Description de l'item"),
+                      shiny::textInput("inventory_DescriptionSelect", "Type d'item"),
+                      shiny::textInput("inventory_DimensionsSelect", "Dimensions (entrer en crochets si planche)", placeholder = "[H;W;L]"), # conditionnel??
+                      shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
+          ),
+          shiny::actionButton("AddInventoryBtn", "Confirmer et ajouter")
+        ),
         DT::dataTableOutput('Inventory_DT')
       ),
 
@@ -156,10 +167,10 @@ server <- function(input, output, session) {
   ## Données réactives ##
   #######################
   values <- reactiveValues()
-  values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName) |> mutate(Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison))
-  values$purchaseOrders <- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception))
+  values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
+  values$purchaseOrders <- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
   values$inventory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
-  values$items <- read_sheet(link_gs_erp, sheet = itemsSheetName) |> mutate(Prix = scales::dollar(Prix))
+  values$items <- read_sheet(link_gs_erp, sheet = itemsSheetName)
   values$clients <- read_sheet(link_gs_erp, sheet = clientsSheetName)
 
   ##########################
@@ -168,44 +179,38 @@ server <- function(input, output, session) {
   # Commandes Clients - Default
   output$CustomerOrders_DT <- renderDT(
     values$customerOrders |> left_join(values$clients, by = "ClientID") |>
-      mutate(Client = paste(Prenom, ' ', Nom)) |> rename(ID = CommandeID) |>
-      select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
+      mutate(Client = paste(Prenom, ' ', Nom), Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison)) |>
+      rename(ID = CommandeID) |> select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Commandes Fournisseurs - Default
   output$PurchaseOrders_DT <- renderDT(
-    values$purchaseOrders |> left_join(values$items, by = "ItemID") |>
-      rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
+    values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception)) |>
+      rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee, Date_Reception),
     options = dt_options, rownames = FALSE, selection = "none")
 
-  # Inventaire - Default
+
+  #######################
+  ## Menu : inventaire ##
+  #######################
   output$Inventory_DT <- renderDT(
-    values$inventory |> 
-    left_join(customerOrders |>
+    values$inventory |>
+    left_join(values$customerOrders |>
                 filter(Statut %in% c("Commandée", "En attente de matériaux")) %>%
                 mutate(Items = str_extract_all(Items, "\\d+:\\d+")) %>%
                 unnest(Items) %>%
                 separate(Items, into = c("ItemID", "Quantity"), sep = ":") %>%
                 mutate(across(c(ItemID, Quantity), as.integer)) |>
-                select(ItemID, Quantity) |>
-                group_by(ItemID) |> summarise(Quantité_Requise = sum(Quantity)),
-              by = join_by(ItemID == ItemID)) |>
-    left_join(fournisseurOrders |>
+                select(ItemID, Quantity) |> group_by(ItemID) |> summarise(Quantité_Requise = sum(Quantity)),
+              by = "ItemID") |>
+    left_join(values$purchaseOrders |>
                 filter(Statut %in% c("En attente d'approbation", "Commandée")) |>
-                select(ItemID, Quantité) |>
-                group_by(ItemID) |> summarise(Quantité_Commandée = sum(Quantité)),
-              by = join_by(ItemID == ItemID)), 
+                select(ItemID, Quantité) |> group_by(ItemID) |> summarise(Quantité_Commandée = sum(Quantité)),
+              by = "ItemID") |>
+      mutate(Date_Mise_A_Jour = as.Date(DateMiseAJour)) |>
+      select(ItemID, Date_Mise_A_Jour, QuantiteDisponible, Quantité_Requise, Quantité_Commandée),
     options = dt_options, rownames = FALSE, selection = "none")
-  
-  # Expédition - Default
-  output$Expedition_DT <- renderDT(
-    values$customerOrders |> left_join(values$clients, by = join_by(ClientID == ClientID)) |>
-      mutate(Client = paste(Prenom, ' ', Nom), 
-             Date_Commande = as.Date(DateCommandeCreation), 
-             Date_Livraison = as.Date(DateCommandeLivraison)) |>
-      filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |> 
-      select(CommandeID, Client, Adresse, Prix, Items, Statut), 
-    options = dt_options, rownames = FALSE, selection = "none")
+
 
   #######################
   ## Tables Expedition ##
@@ -248,7 +253,7 @@ server <- function(input, output, session) {
   })
   output$CustomerOrders_waiting_materials_DT <- renderDT(
     values$customerOrders |> filter(Statut == "En attente de matériaux") |>
-      mutate(Items = str_extract_all(Items, "\\d+:\\d+")) |> unnest(Items) |> separate(Items, into = c("ItemID", "Quantity"), sep = ":") |> mutate(across(c(ItemID, Quantity), as.integer)) |>
+      mutate(Date_Commandee = as.Date(DateCommandeCreation), Items = str_extract_all(Items, "\\d+:\\d+")) |> unnest(Items) |> separate(Items, into = c("ItemID", "Quantity"), sep = ":") |> mutate(across(c(ItemID, Quantity), as.integer)) |>
       left_join(values$items, by = 'ItemID') |> select(CommandeID, Date_Commandee, Nom, Type, Quantity),
     options = dt_options, rownames = FALSE, selection = "none")
   output$WaitingOrdersTotal <- renderText({
@@ -275,11 +280,12 @@ server <- function(input, output, session) {
   ###############
   output$PO_To_Order_DT <- renderDT(
     values$purchaseOrders |> filter(Statut == "En attente d'approbation") |> rename(ID = CommandeFournisseurID) |>
-      left_join(values$items, by = "ItemID") |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut),
+      left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix)) |>
+      select(ID, Fournisseur, Nom, Prix, Quantité, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$PO_Ordered_DT <- renderDT(
     values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(values$items, by = "ItemID") |>
-      rename(ID = CommandeFournisseurID) |>
+      rename(ID = CommandeFournisseurID) |> mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |>
       select(ID, Nom, Quantité, Date_Commandee, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
 
@@ -291,16 +297,16 @@ server <- function(input, output, session) {
     values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID,]$Statut <- input$statusChoice
     output$CustomerOrders_DT <- renderDT(
       values$customerOrders |> left_join(values$clients, by = "ClientID") |>
-        mutate(Client = paste(Prenom, ' ', Nom)) |> rename(ID = CommandeID) |>
+        mutate(Client = paste(Prenom, ' ', Nom), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison), Prix = scales::dollar(Prix)) |> rename(ID = CommandeID) |>
         select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
       options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Annuler
   observeEvent(input$refreshBtn, {
-    values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName) |> mutate(Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison))
+    values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
     output$CustomerOrders_DT <- renderDT(
       values$customerOrders |> left_join(values$clients, by = "ClientID") |>
-        mutate(Client = paste(Prenom, ' ', Nom)) |> rename(ID = CommandeID) |>
+        mutate(Client = paste(Prenom, ' ', Nom), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison), Prix = scales::dollar(Prix)) |> rename(ID = CommandeID) |>
         select(ID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
       options = dt_options, rownames = FALSE, selection = "none")
   })
@@ -317,7 +323,7 @@ server <- function(input, output, session) {
   observeEvent(input$updateStatus_PO, {
     values$purchaseOrders[as.character(values$purchaseOrders$CommandeFournisseurID) == input$orderID_PO, ]$Statut <- input$statusChoice_PO
     output$PurchaseOrders_DT <- renderDT(
-      values$purchaseOrders |> left_join(values$items, by = "ItemID") |>
+      values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
         rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
       options = dt_options, rownames = FALSE, selection = "none")
   })
@@ -325,7 +331,7 @@ server <- function(input, output, session) {
   observeEvent(input$refreshBtn_PO, {
     values$purchaseOrders<- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
     output$PurchaseOrders_DT <- renderDT(
-      values$purchaseOrders |> left_join(values$items, by = "ItemID") |>
+      values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception), Prix = scales::dollar(Prix)) |>
         rename(ID = CommandeFournisseurID) |> select(ID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee,	Date_Reception),
       options = dt_options, rownames = FALSE, selection = "none")
   })
@@ -352,36 +358,17 @@ server <- function(input, output, session) {
       options = dt_options, rownames = FALSE, selection = "none")
   })
   # Button : Mettre à jour le statut
-  # observeEvent(input$updateStatus_exp, {
-  #   values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID_exp,]$Statut <- input$statusChoice_exp
-  #   output$Expedition_DT <- renderDT(
-  #     values$customerOrders |> left_join(values$clients, by = join_by(ClientID == ClientID)) |>
-  #       mutate(Client = paste(Prenom, ' ', Nom)) |> filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |>
-  #       select(Client, Adresse, CommandeID, Prix, Items, Statut),
-  #     options = dt_options, rownames = FALSE, selection = "none")
-  # })
-  # # Button : Annuler
-  # observeEvent(input$refreshBtn_exp, {
-  #   values$customerOrders<- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
-  #   output$Expedition_DT <- renderDT(
-  #     values$customerOrders |> left_join(values$clients, by = join_by(ClientID == ClientID)) |>
-  #       mutate(Client = paste(Prenom, ' ', Nom)) |>
-  #       filter(Statut %in% c("Complétée", "Emballée", "En livraison")) |>
-  #       select(Client, Adresse, CommandeID, Prix, Items, Statut),
-  #     options = dt_options, rownames = FALSE, selection = "none")
-  # })
+  observeEvent(input$updateStatus_exp, {
+    values$customerOrders[as.character(values$customerOrders$CommandeID) == input$orderID_exp,]$Statut <- input$statusChoice_exp
+  })
+  # Button : Annuler
+  observeEvent(input$refreshBtn_exp, {
+    values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
+  })
   # Button : Enregistrer
   observeEvent(input$saveBtn_exp, {
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
   })
-  
-  
-  #######################
-  ## Menu : inventaire ##
-  ####################### 
-  
-  
-  
 }
 
 shinyApp(ui, server)
