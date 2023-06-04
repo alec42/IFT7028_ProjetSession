@@ -40,14 +40,14 @@ ui <- shinydashboard::dashboardPage(
       shinydashboard::tabItem(tabName ="inventory",
         shinydashboardPlus::box(title="Ajouter un nouvel item", width = 12,
           splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                      shiny::numericInput("inventory_itemIDSelect", "ItemID", value = 8), # hardcode max + 1
+                      #shiny::numericInput("inventory_itemIDSelect", "ItemID", value = 8), # hardcode max + 1
                       shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
                       shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
                       shiny::textInput("inventory_NameSelect", "Nom d'item")
           ),
           splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
                       shiny::textInput("inventory_DescriptionSelect", "Description de l'item"),
-                      shiny::textInput("inventory_DescriptionSelect", "Type d'item"),
+                      shiny::textInput("inventory_TypeSelect", "Type d'item"),
                       shiny::textInput("inventory_DimensionsSelect", "Dimensions (entrer en crochets si planche)", placeholder = "[H;W;L]"), # conditionnel??
                       shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
           ),
@@ -193,24 +193,37 @@ server <- function(input, output, session) {
   #######################
   ## Menu : inventaire ##
   #######################
+  #
   output$Inventory_DT <- renderDT(
     values$inventory |>
-    left_join(values$customerOrders |>
-                filter(Statut %in% c("Commandée", "En attente de matériaux")) %>%
-                mutate(Items = str_extract_all(Items, "\\d+:\\d+")) %>%
-                unnest(Items) %>%
-                separate(Items, into = c("ItemID", "Quantity"), sep = ":") %>%
+      left_join(values$customerOrders |>
+                filter(Statut %in% c("Commandée", "En attente de matériaux")) |>
+                mutate(Items = str_extract_all(Items, "\\d+:\\d+")) |>
+                unnest(Items) |>
+                separate(Items, into = c("ItemID", "Quantity"), sep = ":") |>
                 mutate(across(c(ItemID, Quantity), as.integer)) |>
                 select(ItemID, Quantity) |> group_by(ItemID) |> summarise(Quantité_Requise = sum(Quantity)),
               by = "ItemID") |>
-    left_join(values$purchaseOrders |>
+      left_join(values$purchaseOrders |>
                 filter(Statut %in% c("En attente d'approbation", "Commandée")) |>
                 select(ItemID, Quantité) |> group_by(ItemID) |> summarise(Quantité_Commandée = sum(Quantité)),
               by = "ItemID") |>
+      left_join(values$items, by = join_by(ItemID == ItemID)) |>
       mutate(Date_Mise_A_Jour = as.Date(DateMiseAJour)) |>
-      select(ItemID, Date_Mise_A_Jour, QuantiteDisponible, Quantité_Requise, Quantité_Commandée),
+      select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, MinStock, QuantiteDisponible, Quantité_Requise, Quantité_Commandée, Date_Mise_A_Jour),
     options = dt_options, rownames = FALSE, selection = "none")
-
+  #
+  observeEvent(input$AddInventoryBtn, {
+    values$items <- values$items |> add_row(ItemID = nrow(values$items) + 1, 
+                                            Fournisseur = input$inventory_FournisseurSelect,
+                                            Prix = input$inventory_PrixSelect,
+                                            Nom = input$inventory_NameSelect,
+                                            Description = input$inventory_DescriptionSelect,
+                                            Type = input$inventory_TypeSelect,
+                                            Dimensions = input$inventory_DimensionsSelect,
+                                            MinStock = input$inventory_MinStockSelect
+    )
+  })
 
   #######################
   ## Tables Expedition ##
