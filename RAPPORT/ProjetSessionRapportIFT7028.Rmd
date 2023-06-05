@@ -1,0 +1,132 @@
+---
+header-includes:
+  - \usepackage[french]{babel}
+  - \usepackage{amsmath}
+output: 
+    pdf_document:
+        toc : true
+        includes:
+            before_body: 
+            - src/title.tex
+            in_header: 
+            - src/preamble-latex.tex
+---
+
+\renewcommand{\tablename}{Tableau}
+
+```{r packages, include = F}
+library(knitr)
+library(kableExtra) # nicer tables
+library(pander) # automatic numbering tables
+library(tidyverse) # pour jouer avec les données. Inclu ggplot2, dplyr, etc.
+library(scales) # pour rneder en pourcentage des chiffres. Utiliser percent()
+```
+
+```{r setup, include = F}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+```{r CSV import, echo = FALSE}
+source("../ERP_MES_RV_APP/scripts/googlesheets_access.R", local=TRUE)
+customerOrders <- read_sheet(link_gs_erp, sheet = "Commandes")
+customerOrders_AvgPrice <- customerOrders |> 
+  group_by(Statut) |> 
+  summarize("Prix Moyen" = scales::dollar(accuracy = 1, mean(Prix)))
+```
+
+\newpage
+
+`r pander(customerOrders_AvgPrice, "\\label{tabs:new.WRK} Prix moyen par statut")`
+
+Le tableau \ref{tabs:new.WRK} contient les prix moyens par statut de la commande.
+
+\begin{center}
+{Graphique 1 : Histogramme des prix de commandes}
+\end{center}
+
+```{r OrderPriceHist, fig.height=4}
+customerOrders |> 
+  ggplot(aes(Prix)) +
+  geom_histogram(bins = 5) + 
+  theme_classic() + ylab("nb de commandes") + xlab("Prix de la commande")
+```
+
+\newpage
+
+# Introduction
+Une compagnie qui souhaite porter au marché la possibilité de s'auto-design une petite roulotte qui s'assemble. Ils nous ont contractés en tant qu'étudiants étudiants universaite afin de leur mettre en place une usine 4.0. 
+
+Nous (la classe) avons séparé le processus en 3 équipes dont la notre (équipe 2) qui se charge de développer et mettre en place un système qui englobe les fonctionnalités d'un **Enterprise Ressource Planning** *(ERP)* system et d'un **Manufacturing Execution System** *(MES)*.
+
+Les aspects de la production qui relèvent de nous sont d'un grand étendu. 
+
+-   La planification agrégée et quotidienne de la production (y compris l'optimisation);
+-   la logisitque relative à l'expédition des roulottes et l'achat des matières premières;
+-   la reception de la matière première et la mise-à-jour de l'inventaire;
+-   la gestion des bases de données (clientes, commandes, inventaires, etc.);
+-   le suivi de l'entreprise par biais de tableaux de bord;
+-   le suivi de la production.
+
+Nous avons enterpris l'utilisation d'une application Shiny interactive que le plancher de production tout comme le personnel administratif pourra utiliser pour réussir à produire les VRs du futur!
+
+\newpage
+
+# Interface d'utilisateur
+<!-- Définition du problème -->
+L'interface comporte les onglets suivants
+\dots
+
+L'expédition peut \dots avec les fonctionalités 
+
+La réception peut \dots avec les fonctionalités 
+
+Les commis d'inventaire peuvent \dots avec les fonctionalités 
+
+Les acheteurs peuvent \dots avec les fonctionalités 
+
+
+Le gestionnaire du plancher peut prévoir les horaires avec les fonctionnalités \dots
+
+
+L'opérateur du laser peut accéder aux fichier \dots via l'onglet \dots
+
+l'état financier et manufacturier de l'usine du plancher peuvent être suivi dans le tableau de board avec les fonctionnalités \dots
+
+\newpage
+
+# Bases de données
+<!-- Collecte et transformation des données -->
+Les bases de données établies sont les suivantes :
+\dots
+
+Les relations peuvent être visualisées avec ce [draw.io](https://app.diagrams.net/#G1b6Odp_C5NrstYxVB3uDXICgNU8uwaFVg).
+
+
+\newpage
+
+# Modèle d'optimisation
+<!-- Analyse statistique -->
+
+\newpage
+
+<!-- # Résultats et performance -->
+
+\newpage
+
+# Discussions et limites
+
+\newpage
+
+# Conclusion
+
+\newpage
+
+# Remerciements
+
+
+
+\setcounter{table}{0}
+
+\newpage
+
+# Annexes
