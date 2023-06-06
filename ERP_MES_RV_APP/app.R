@@ -100,7 +100,7 @@ ui <- shinydashboard::dashboardPage(
       shinydashboard::tabItem(tabName ="purchaseOrders",
         splitLayout(cellWidths = c("0", "25%", "25%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
           shiny::textInput("orderID_PO", "Numéro de commande"),
-          shiny::selectInput("statusChoice_PO", "Choix Statut", c("Commandée", "Reçue", "En attente d'approbation"))
+          shiny::selectInput("statusChoice_PO", "Choix Statut", c("Commandée", "Reçue"))
         ),
         shiny::actionButton("updateStatus_PO", "Mettre à jour les tables"),
         shiny::actionButton("refreshBtn_PO", "Annuler"),
@@ -312,9 +312,9 @@ server <- function(input, output, session) {
   })
 
 
-  ###############
-  ## Tables PO ##
-  ###############
+  #########################
+  ## Affichage Réception ##
+  #########################
   output$PO_To_Order_DT <- renderDT(
     values$purchaseOrders |> filter(Statut == "En attente d'approbation") |>
       left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix)) |>
@@ -360,18 +360,38 @@ server <- function(input, output, session) {
   ###################################
   ## Menu : commandes fournisseurs ##
   ###################################
+  
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus_PO, {
+    if ((input$statusChoice_PO == "Reçue") && 
+        (values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Statut != "Reçue")) {
+      values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible <-
+        values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible +
+        values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Quantité
+    }
+    
+    if ((input$statusChoice_PO == "Commandée") && 
+        (values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Statut != "Commandée")) {
+      values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible <-
+        values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible -
+        values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Quantité
+    }
+    
     values$purchaseOrders[as.character(values$purchaseOrders$CommandeFournisseurID) == input$orderID_PO, ]$Statut <- input$statusChoice_PO
   })
+  
   # Button : Annuler
   observeEvent(input$refreshBtn_PO, {
     values$purchaseOrders<- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
+    values$inventory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
   })
+  
   # Button : Enregistrer
   observeEvent(input$saveBtn_PO, {
     googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs_erp, sheet = purchaseOrdersSheetName)
+    googlesheets4::sheet_write(data = values$inventory, ss = link_gs_erp, sheet = InventorySheetName)
   })
+  
 
 
   #######################
