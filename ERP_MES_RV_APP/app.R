@@ -39,7 +39,7 @@ ui <- shinydashboard::dashboardPage(
     shinydashboard::tabItems(
       shinydashboard::tabItem(tabName ="inventory",
         shiny::fluidRow(
-          shinydashboardPlus::box(title="Ajouter un nouvel item", width = 12,
+          shinydashboardPlus::box(title="Ajouter/Retirer un nouvel item", width = 12,
             splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
                         shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
                         shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
@@ -51,11 +51,16 @@ ui <- shinydashboard::dashboardPage(
                         shiny::textInput("inventory_DimensionsSelect", "Dimensions (entrer en crochets si planche)", placeholder = "[H;W;L]"), # conditionnel??
                         shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
             ),
-            shiny::actionButton("AddInventoryBtn", "Confirmer et ajouter")
+            shiny::actionButton("AddInventoryBtn", "Ajouter"),
+            
+            shiny::textInput("itemID", "ItemID"),
+            shiny::actionButton("removeInventoryBtn", "Retirer"),            
+            shiny::actionButton("refreshItemBtn", "Annuler"),
+            shiny::actionButton("saveInventoryBtn", "Enregistrer")
           ),
           shinydashboardPlus::box(title = "Liste d'items disponibles", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary", DT::dataTableOutput('Items_DT')),
           shinydashboardPlus::box(title = "Inventaire actuel", width = 12, collapsible = F, solidHeader = TRUE, status = "success", DT::dataTableOutput('Inventory_DT'))
-        )
+        ),
       ),
 
       shinydashboard::tabItem(tabName ="clientOrders",
@@ -196,10 +201,14 @@ server <- function(input, output, session) {
   #######################
   ## Menu : inventaire ##
   #######################
+  
+  # Affichage : Item
   output$Items_DT <- renderDT(
     values$items,
     rownames = FALSE, selection = "none"
   )
+  
+  # Affichage : Inventaire
   output$Inventory_DT <- renderDT(
     values$inventory |>
       left_join(values$customerOrders |>
@@ -218,7 +227,8 @@ server <- function(input, output, session) {
       mutate(Date_Mise_A_Jour = as.Date(DateMiseAJour)) |>
       select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, MinStock, QuantiteDisponible, Quantité_Requise, Quantité_Commandée, Date_Mise_A_Jour),
     options = dt_options, rownames = FALSE, selection = "none")
-  #
+  
+  # Button : Ajouter un item
   observeEvent(input$AddInventoryBtn, {
     values$items <- values$items |> add_row(ItemID = nrow(values$items) + 1,
                                             Fournisseur = input$inventory_FournisseurSelect,
@@ -229,6 +239,22 @@ server <- function(input, output, session) {
                                             Dimensions = input$inventory_DimensionsSelect,
                                             MinStock = input$inventory_MinStockSelect
     )
+  })
+  
+  # Button : Annuler
+  observeEvent(input$refreshItemBtn, {
+    values$items<- read_sheet(link_gs_erp, sheet = itemsSheetName)
+  })
+  
+  
+  # Button : Enregistrer
+  observeEvent(input$saveInventoryBtn, {
+    googlesheets4::sheet_write(data = values$items, ss = link_gs_erp, sheet = itemsSheetName)
+  })
+  
+  # Button : Retirer
+  observeEvent(input$removeInventoryBtn, {
+    values$items <- values$items |> filter(ItemID != input$itemID)
   })
 
   #######################
@@ -320,9 +346,9 @@ server <- function(input, output, session) {
     nrow(values$purchaseOrders |> filter(Statut == "Commandée"))
   })
 
-  ##############################
+  ######################
   ## Menu : Dashboard ##
-  ##############################
+  ######################
   output$RevenueTotal <- renderText({
     scales::dollar(sum((values$purchaseOrders |> left_join(values$items, 'ItemID') |> mutate(Cout = Prix * Quantité))$Cout))
   })
