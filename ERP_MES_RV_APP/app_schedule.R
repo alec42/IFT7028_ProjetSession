@@ -16,19 +16,23 @@ library(htmlwidgets)
 #source("scripts/googlesheets_access.R") # get link to gs
 source("planning_algo.R")
 
-#Data from database (temporary) : 
+#Data from database (temporary) :
+items = c(c("1"=2,"2":1,"3":1), c("1":2,"2":1,"3":2), c("1":1,"2":1,"3":1), c("1":1,"2":2,"3":2))
+item1 = c("1"=2,"2":1,"3":1)
+item2 = c("1":2,"2":1,"3":2)
+item3 = c("1":1,"2":1,"3":1)
+item4 = c("1":1,"2":2,"3":2)
 Commande <- data.frame(
   CommandeID = c("1","2","3","4"),
   ClientID = c("11","12","13","14"),
   FichierFabrication = c("googleDrive\\complet\\1\\infos.json","googleDrive\\complet\\2\\infos.json","googleDrive\\complet\\3\\infos.json","googleDrive\\complet\\3\\infos.json"),
   Statut = c("Commandée","Commandée","En prod","Commandée"),
   CommandeDetailID = c("1","2","3","4"),
-  DateCreation = c("2023-05-25","2023-05-27","2023-05-30","2023-05-29"),
-  DateLivraison = c("2023-06-05", "2023-06-08", "2023-06-04","2023-06-10"),
-  P1 = c(2,2,1,1),
-  P2 = c(1,1,1,2),
-  P3 = c(1,2,1,2)
+  DateCommandeCreation = c("2023-05-25","2023-05-27","2023-05-30","2023-05-29"),
+  DateCommandeLivraison = c("2023-06-05", "2023-06-08", "2023-06-04","2023-06-10")#,
+  #Items = c(item1,item2,item3,item4)
 )
+
 
 CommandeDetail <- data.frame(
   CommandeID = c(rep("1",4),rep("2",5),rep("3",3), rep("4",5)),
@@ -48,27 +52,36 @@ CommandeDetail <- data.frame(
 )
 
 Inventaire <- data.frame(
-  ItemID = c("P1","P2","P3","Colle","Vernis","Scie japonaise"),
-  Qtte = c(2,4,5,2,4,5),
-  MinStock = c(3,3,3,3,3,3)
+  ItemID = c(1,2,3,4,5,6),
+  QuantiteDisponible = c(2,0,5,2,4,5)
 )
 
 CommandesFournisseurs <- data.frame(
   Fournisseur = c("XX"),
-  DateReception = c("2023-06-02"),
-  Item = c("P1"),
-  Qtte = c(4),
-  Statut = c("En attente")
+  DateCommandeFReception = c("2023-06-01"),
+  ItemID = c(1),
+  Quantité = c(4),
+  Statut = c("En attente d'approbation")
+)
+
+Items <- data.frame(
+  ItemID = c(1,2,3,4,5,6,7),
+  Fournisseur = c("Reno Depot","Canadian Tire", "BMR","Home Depot","Reno Depot","Canadian Tire","BMR"),
+  MinStock = c(3,3,3,3,3,3,3)
+)
+
+panneauDetail = data.frame(
+  PanneauID = c(1,2,3)
 )
 
 
 #--------- Data from planning algo -------------------
 #TODO : Date function to keep track of where we are
 today = "2023-06-01"
-MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, CommandeDetail, today, max_range = 6, buffer = 2, nb_machines = 1)
+source("planning_algo.R")
+MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, CommandeDetail, Items, panneauDetail, today, max_range = 6, buffer = 3, nb_machines = 1)
 
 #Update the real data tables
-#MES_output[[4]]
 Commande <- MES_output[[1]]
 Inventaire <- MES_output[[2]][[1]]
 CommandesFournisseurs <- MES_output[[3]]
@@ -97,11 +110,11 @@ panneau_df <- merge(CommandeDetail, data_today, by.x='PanneauID', by.y = "conten
 panneau_df
 
 #Get today fournisseurs -- for table
-fournisseurs_today <- CommandesFournisseurs %>% filter(DateReception == today)
+fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
 fournisseurs_today
 
 #Get fournisseurs in planif -- for table
-fournisseurs_planif <- CommandesFournisseurs %>% filter(DateReception >= today)
+fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
 fournisseurs_planif
 
 #TODO : Insert button to update the status of each panneau
@@ -143,20 +156,20 @@ server <- function(input, output) {
 
   output$timeline <- renderTimevis({
     #Whole planif :
-    #timevis(data=values$weekDF, groups=values$weekGroupsDF)
+    timevis(data=values$weekDF, groups=values$weekGroupsDF)
 
     #Today planif :
-    timevis(data=values$todayDF, groups=values$todayGroupsDF)#, 
+    #timevis(data=values$todayDF, groups=values$todayGroupsDF)#, 
             #options=list(
             #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
   })
 
   #Today tables
-  output$table1 <- renderTable(values$panelDF)  #Current day panneaux prod
-  output$table2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
+  #output$table1 <- renderTable(values$panelDF)  #Current day panneaux prod
+  #output$table2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
   
   #Full planif table
-  #output$table1 <- renderTable(values$weekFournisseurs)
+  output$table1 <- renderTable(values$weekFournisseurs)
 }
 
 # Run the application
