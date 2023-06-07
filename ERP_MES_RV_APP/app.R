@@ -1,12 +1,11 @@
 library(tidyverse)
-# library(plotly)
 library(DT)
 library(shiny)
 library(scales)
+library(rjson)
 library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
-# library(shinyWidgets)
 
 ##########################
 # Interface Utilisateur #
@@ -165,6 +164,11 @@ ui <- shinydashboard::dashboardPage(
 
 source("scripts/googlesheets_access.R") # get link to gs
 source("app_schedule.R")
+source("scripts/google_drive_json_update.R")
+
+# GDriveJSONUpdate(
+#   dossier_racine = "Industrie_VR_IFT7028/", dossier_commandee = "commandes_json/commandée/", dossier_importee = "commandes_json/importée/",
+#   customerOrders = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Commandes'))
 
 ###########################
 ## Onglets Google Sheets ##

@@ -1,7 +1,14 @@
-rsconnect/
+## RStudio/R Temp Files
 .Rhistory
 .RData
-*.DS_STORE
-.secrets/
 .Rproj.user
-.secrets
+
+## R Shiny Authentification
+rsconnect/
+
+## Google Authentification
+.secrets/
+.gdrive_secrets/
+
+## Mac Temp Files
+*.DS_STORE

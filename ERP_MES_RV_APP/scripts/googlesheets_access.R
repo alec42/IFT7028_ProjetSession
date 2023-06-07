@@ -1,6 +1,10 @@
 library(googlesheets4)
-# library(googledrive)
+library(googledrive)
+library(rjson)
 
+# Google Sheets DB --------------------------------------------------------
 gs4_auth(cache = ".secrets", email = "alecvanrassel@gmail.com") #alecvanrassel dexstroy.gaming
-
 link_gs_erp <- "https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611"
+
+# Google Drive ------------------------------------------------------------
+drive_auth(cache = ".gdrive_secrets", scopes = "https://www.googleapis.com/auth/drive", email = "alecisgroovy@gmail.com") # eloise.duhotprevot
