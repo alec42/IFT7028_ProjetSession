@@ -52,9 +52,9 @@ ui <- shinydashboard::dashboardPage(
                         shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
             ),
             shiny::actionButton("AddInventoryBtn", "Ajouter"),
-            
+
             shiny::textInput("itemID", "ItemID"),
-            shiny::actionButton("removeInventoryBtn", "Retirer"),            
+            shiny::actionButton("removeInventoryBtn", "Retirer"),
             shiny::actionButton("refreshItemBtn", "Annuler"),
             shiny::actionButton("saveInventoryBtn", "Enregistrer")
           ),
@@ -117,10 +117,19 @@ ui <- shinydashboard::dashboardPage(
         )
       ),
 
-      shinydashboard::tabItem(tabName ="dailyProduction"
+      shinydashboard::tabItem(tabName ="dailyProduction",
+        shinydashboardPlus::box(title = "Planification pour la journée", solidHeader = TRUE, width = 12,
+        timevisOutput("timelineDaily"),
+        tableOutput('tableDaily_1'),
+        tableOutput('tableDaily_2')
+        )
       ),
 
-      shinydashboard::tabItem(tabName ="weeklyProduction"
+      shinydashboard::tabItem(tabName ="weeklyProduction",
+        shinydashboardPlus::box(title = "Planification pour la semaine", solidHeader = TRUE, width = 12,
+        timevisOutput("timelineWeekly"),
+        tableOutput('tableWeekly_1')
+        )
       ),
 
       shinydashboard::tabItem(tabName = "expedition",
@@ -155,7 +164,7 @@ ui <- shinydashboard::dashboardPage(
 )
 
 source("scripts/googlesheets_access.R") # get link to gs
-source("scripts/interactiveDT.R", local = TRUE)
+source("app_schedule.R")
 
 ###########################
 ## Onglets Google Sheets ##
@@ -180,6 +189,14 @@ server <- function(input, output, session) {
   values$inventory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
   values$items <- read_sheet(link_gs_erp, sheet = itemsSheetName)
   values$clients <- read_sheet(link_gs_erp, sheet = clientsSheetName)
+  # Timeline
+  values$panelDF <- panneau_df
+  values$manufacturerDF <- fournisseurs_today
+  values$todayDF <- data_today
+  values$todayGroupsDF <- data_today_groups
+  values$weekDF <- data
+  values$weekGroupsDF <- data_groups
+  values$weekFournisseurs <- fournisseurs_planif
 
   ##########################
   ## Affichage par défaut ##
@@ -197,17 +214,32 @@ server <- function(input, output, session) {
       select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee, Date_Reception),
     options = dt_options, rownames = FALSE, selection = "none")
 
+  #######################
+  ## Planification ##
+  #######################
+
+  output$timelineDaily <- renderTimevis({
+    timevis(data=values$todayDF, groups=values$todayGroupsDF)
+    #options=list(
+    #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
+  })
+  output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
+  output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
+  output$timelineWeekly <- renderTimevis({
+    timevis(data=values$weekDF, groups=values$weekGroupsDF)
+  })
+  output$tableWeekly_1 <- renderTable(values$weekFournisseurs)
 
   #######################
   ## Menu : inventaire ##
   #######################
-  
+
   # Affichage : Item
   output$Items_DT <- renderDT(
     values$items,
     rownames = FALSE, selection = "none"
   )
-  
+
   # Affichage : Inventaire
   output$Inventory_DT <- renderDT(
     values$inventory |>
@@ -227,7 +259,7 @@ server <- function(input, output, session) {
       mutate(Date_Mise_A_Jour = as.Date(DateMiseAJour)) |>
       select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, MinStock, QuantiteDisponible, Quantité_Requise, Quantité_Commandée, Date_Mise_A_Jour),
     options = dt_options, rownames = FALSE, selection = "none")
-  
+
   # Button : Ajouter un item
   observeEvent(input$AddInventoryBtn, {
     values$items <- values$items |> add_row(ItemID = nrow(values$items) + 1,
@@ -240,18 +272,18 @@ server <- function(input, output, session) {
                                             MinStock = input$inventory_MinStockSelect
     )
   })
-  
+
   # Button : Annuler
   observeEvent(input$refreshItemBtn, {
     values$items<- read_sheet(link_gs_erp, sheet = itemsSheetName)
   })
-  
-  
+
+
   # Button : Enregistrer
   observeEvent(input$saveInventoryBtn, {
     googlesheets4::sheet_write(data = values$items, ss = link_gs_erp, sheet = itemsSheetName)
   })
-  
+
   # Button : Retirer
   observeEvent(input$removeInventoryBtn, {
     values$items <- values$items |> filter(ItemID != input$itemID)
@@ -360,38 +392,38 @@ server <- function(input, output, session) {
   ###################################
   ## Menu : commandes fournisseurs ##
   ###################################
-  
+
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus_PO, {
-    if ((input$statusChoice_PO == "Reçue") && 
+    if ((input$statusChoice_PO == "Reçue") &&
         (values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Statut != "Reçue")) {
       values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible <-
         values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible +
         values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Quantité
     }
-    
-    if ((input$statusChoice_PO == "Commandée") && 
+
+    if ((input$statusChoice_PO == "Commandée") &&
         (values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Statut == "Reçue")) {
       values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible <-
         values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible -
         values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Quantité
     }
-    
+
     values$purchaseOrders[as.character(values$purchaseOrders$CommandeFournisseurID) == input$orderID_PO, ]$Statut <- input$statusChoice_PO
   })
-  
+
   # Button : Annuler
   observeEvent(input$refreshBtn_PO, {
     values$purchaseOrders<- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
     values$inventory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
   })
-  
+
   # Button : Enregistrer
   observeEvent(input$saveBtn_PO, {
     googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs_erp, sheet = purchaseOrdersSheetName)
     googlesheets4::sheet_write(data = values$inventory, ss = link_gs_erp, sheet = InventorySheetName)
   })
-  
+
 
 
   #######################

@@ -37,7 +37,7 @@ Commande <- data.frame(
 CommandeDetail <- data.frame(
   CommandeID = c(rep("1",4),rep("2",5),rep("3",3), rep("4",5)),
   PanneauID = c("1-P1-1","1-P1-2","1-P2-1","1-P3-1",
-                "2-P1-1","2-P1-2","2-P2-1","2-P3-1","2-P3-2", 
+                "2-P1-1","2-P1-2","2-P2-1","2-P3-1","2-P3-2",
                 "3-P1-1","3-P2-1","3-P3-1",
                 "4-P1-1","4-P1-2","4-P2-1","4-P3-1","4-P3-2"),
   PanneauType = c("P1","P2","P2","P3",
@@ -122,55 +122,55 @@ fournisseurs_planif
 #----------------------------------------------------
 
 
-# Define UI for the timeline
-ui <- fluidPage(
-  timevisOutput("timeline"),
-  fluidPage(
-    fluidRow(
-      column(12,
-             tableOutput('table1')
-      )
-    )
-  ),
-  fluidPage(
-    fluidRow(
-      column(12,
-             tableOutput('table2')
-      )
-    )
-  )
-)
-
-
-# Define server logic to make the timeline appear
-server <- function(input, output) {
-  values <- reactiveValues()
-  # values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
-  values$panelDF <- panneau_df
-  values$manufacturerDF <- fournisseurs_today
-  values$todayDF <- data_today
-  values$todayGroupsDF <- data_today_groups
-  values$weekDF <- data
-  values$weekGroupsDF <- data_groups
-  values$weekFournisseurs <- fournisseurs_planif
-
-  output$timeline <- renderTimevis({
-    #Whole planif :
-    timevis(data=values$weekDF, groups=values$weekGroupsDF)
-
-    #Today planif :
-    #timevis(data=values$todayDF, groups=values$todayGroupsDF)#, 
-            #options=list(
-            #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
-  })
-
-  #Today tables
-  #output$table1 <- renderTable(values$panelDF)  #Current day panneaux prod
-  #output$table2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
-  
-  #Full planif table
-  output$table1 <- renderTable(values$weekFournisseurs)
-}
-
-# Run the application
-shinyApp(ui = ui, server = server)
+# # Define UI for the timeline
+# ui <- fluidPage(
+#   timevisOutput("timeline"),
+#   fluidPage(
+#     fluidRow(
+#       column(12,
+#              tableOutput('table1')
+#       )
+#     )
+#   ),
+#   fluidPage(
+#     fluidRow(
+#       column(12,
+#              tableOutput('table2')
+#       )
+#     )
+#   )
+# )
+#
+#
+# # Define server logic to make the timeline appear
+# server <- function(input, output) {
+#   values <- reactiveValues()
+#   # values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
+#   values$panelDF <- panneau_df
+#   values$manufacturerDF <- fournisseurs_today
+#   values$todayDF <- data_today
+#   values$todayGroupsDF <- data_today_groups
+#   values$weekDF <- data
+#   values$weekGroupsDF <- data_groups
+#   values$weekFournisseurs <- fournisseurs_planif
+#
+#   output$timeline <- renderTimevis({
+#     #Whole planif :
+#     timevis(data=values$weekDF, groups=values$weekGroupsDF)
+#
+#     #Today planif :
+#     #timevis(data=values$todayDF, groups=values$todayGroupsDF)#,
+#             #options=list(
+#             #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
+#   })
+#
+#   #Today tables
+#   #output$table1 <- renderTable(values$panelDF)  #Current day panneaux prod
+#   #output$table2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
+#
+#   #Full planif table
+#   output$table1 <- renderTable(values$weekFournisseurs)
+# }
+#
+# # Run the application
+# shinyApp(ui = ui, server = server)
