@@ -29,7 +29,8 @@ Commande <- data.frame(
   Statut = c("Commandée","Commandée","En prod","Commandée"),
   CommandeDetailID = c("1","2","3","4"),
   DateCommandeCreation = c("2023-05-25","2023-05-27","2023-05-30","2023-05-29"),
-  DateCommandeLivraison = c("2023-06-05", "2023-06-08", "2023-06-04","2023-06-10")#,
+  DateCommandeLivraison = c("2023-06-05", "2023-06-08", "2023-06-04","2023-06-10"),
+  FichierAssemblage = c("googleDrive\\complet\\1\\infos.json","googleDrive\\complet\\2\\infos.json","googleDrive\\complet\\3\\infos.json","googleDrive\\complet\\3\\infos.json")#,
   #Items = list(list("1"=2,"2":1,"3":1), 
                #c("1":2,"2":1,"3":2), 
                #c("1":1,"2":1,"3":1), 
@@ -40,16 +41,16 @@ Commande <- data.frame(
 PanneauDetail <- data.frame(
   CommandeID = c(rep("1",4),rep("2",5),rep("3",3), rep("4",5)),
   PanneauID = c(1,2,3,4,
-                1,2,3,4,5, 
-                1,2,3,
-                1,2,3,4,5),
+                5,6,7,8,9, 
+                10,11,12,
+                13,14,15,16,17),
   PanneauType = c(1,2,2,3,
                   1,1,2,3,3,
                   1,2,3,
                   1, 2,2,3,3),
   Statut = c(rep("TODO",17)),
-  DateFabrication = c(rep("",17)),
-  Fichier = c("googleDrive\\complet\\1\\C1\\P1-1.CAD","googleDrive\\complet\\1\\C1\\P1-2.CAD","googleDrive\\complet\\1\\C1\\P2-1.CAD","googleDrive\\complet\\1\\C1\\P3-1.CAD",
+  DatePrevue = c(rep("",17)),
+  FichierDecoupe = c("googleDrive\\complet\\1\\C1\\P1-1.CAD","googleDrive\\complet\\1\\C1\\P1-2.CAD","googleDrive\\complet\\1\\C1\\P2-1.CAD","googleDrive\\complet\\1\\C1\\P3-1.CAD",
               "googleDrive\\complet\\1\\C2\\P1-1.CAD","googleDrive\\complet\\1\\C2\\P1-2.CAD","googleDrive\\complet\\1\\C2\\P2-1.CAD","googleDrive\\complet\\1\\C2\\P3-1.CAD","googleDrive\\complet\\1\\C2\\P3-2.CAD",
               "googleDrive\\complet\\1\\C3\\P1-1.CAD","googleDrive\\complet\\1\\C3\\P2-1.CAD","googleDrive\\complet\\1\\C3\\P3-1.CAD",
               "googleDrive\\complet\\1\\C4\\P1-1.CAD","googleDrive\\complet\\1\\C4\\P1-2.CAD","googleDrive\\complet\\1\\C4\\P2-1.CAD","googleDrive\\complet\\1\\C4\\P3-1.CAD","googleDrive\\complet\\1\\C4\\P3-2.CAD")
@@ -57,7 +58,7 @@ PanneauDetail <- data.frame(
 
 Inventaire <- data.frame(
   ItemID = c(1,2,3,4,5,6,7),
-  QuantiteDisponible = c(2,2,5,2,4,5,2)
+  QuantiteDisponible = c(4,2,5,2,4,5,2)
 )
 
 CommandesFournisseurs <- data.frame(
@@ -94,33 +95,30 @@ DisposUsine <- data.frame(
   Friday = c("08:00:00","12:00:00")
 )
 
-#panneauDetail = data.frame(
-#  PanneauID = c(1,2,3)
-#)
-
 
 #--------- Data from planning algo -------------------
-#TODO : Date function to keep track of where we are
 today = "2023-06-01"
-source("planning_algo.R")
-MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, PanneauDetail, Items, DisposUsine, DisposEmployers, panneauDetail, today, max_range = 7, buffer = 3, nb_machines = 1)
+MES_output <- MES_planif(Commande, Inventaire, CommandesFournisseurs, PanneauDetail, Items, DisposUsine, DisposEmployers, today, max_range = 5, buffer = 3, nb_machines = 1)
 
-#Update the real data tables
+#Update the real data tables in BD
 Commande <- MES_output[[1]]
 CommandesFournisseurs <- MES_output[[2]]
 PanneauDetail <- MES_output[[3]]
 
 #Local data for interface
 data <- MES_output[[4]]
-#Save planif data to some BD
+data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
+
 data_groups <- MES_output[[5]]
+
+#TODO : Save planif data to some BD
 
 # ------------- Generating tables from planning -------------------------
 
 #Get today prod -- for timeline
 data_today <- data %>%
   filter(str_split_i(start, " ", 1) == today)
-data_today
+data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
 
 #Get today unique groups -- for timeline
 data_today_groups <- data_today %>%
@@ -131,19 +129,16 @@ data_today_groups <- data_today %>%
 
 
 #Get today planif -- for table
-panneau_df <- merge(CommandeDetail, data_today, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
-panneau_df
+data_today_small <- data_today %>% select(-FichierDecoupe)
+panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
 
 #Get today fournisseurs -- for table
 fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
-fournisseurs_today
 
 #Get fournisseurs in planif -- for table
 fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
-fournisseurs_planif
 
-#TODO : Insert button to update the status of each panneau
-  #Add loop to update the status of the commande if all panneaux are done
+
 #----------------------------------------------------
 
 
@@ -173,9 +168,9 @@ server <- function(input, output) {
   # values$customerOrders <- read_sheet(link_gs, sheet = customerOrdersSheetName)
   values$panelDF <- panneau_df
   values$manufacturerDF <- fournisseurs_today
-  values$todayDF <- data_today
+  values$todayDF <- data_today_to_timevis
   values$todayGroupsDF <- data_today_groups
-  values$weekDF <- data
+  values$weekDF <- data_to_timevis
   values$weekGroupsDF <- data_groups
   values$weekFournisseurs <- fournisseurs_planif
 
