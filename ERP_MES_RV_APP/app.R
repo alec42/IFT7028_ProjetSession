@@ -174,7 +174,8 @@ ui <- shinydashboard::dashboardPage(
 ############
 
 source("scripts/googlesheets_access.R") # get link to gs
-source("app_schedule.R")
+#source("app_schedule.R")
+source("planning_algo.R")
 source("scripts/google_drive_json_update.R")
 
 # GDriveJSONUpdate(
@@ -191,6 +192,48 @@ itemsSheetName <- "Items"
 InventorySheetName <- "Inventaire"
 clientsSheetName <- "Clients"
 dt_options <- list(dom = 't')
+#il manquerait PanneauDetail, DisposEmployers, DisposUsine
+
+############################
+# Getting Planning ########
+###########################
+#today = ?
+MES_output <- MES_planif(values$customerOrders, values$inventory, values$purchaseOrders, PanneauDetail, values$items, DisposUsine, DisposEmployers, today, max_range = 5, buffer = 3, nb_machines = 1)
+
+#Update the real data tables in BD
+Commande <- MES_output[[1]]
+CommandesFournisseurs <- MES_output[[2]]
+PanneauDetail <- MES_output[[3]]
+
+#Local data for interface
+data <- MES_output[[4]]
+data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
+data_groups <- MES_output[[5]]
+
+#TODO : Save planif data to some BD
+
+#Get today prod -- for timeline
+data_today <- data %>%
+  filter(str_split_i(start, " ", 1) == today)
+data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
+
+#Get today unique groups -- for timeline
+data_today_groups <- data_today %>%
+  select(group) %>%
+  mutate(group2 = group) %>%
+  distinct() %>%
+  rename(id = group, content = group2)
+
+#Get today planif -- for table
+data_today_small <- data_today %>% select(-FichierDecoupe)
+panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
+
+#Get today fournisseurs -- for table
+fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
+
+#Get fournisseurs in planif -- for table
+fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
+#DONE planif
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
