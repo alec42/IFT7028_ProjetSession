@@ -20,25 +20,37 @@ get_dates_to_plan <- function(today, max_range){
 }
 
 #Planning from list of commandes we can start today + update inventory
-plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_per_time, prod_day, Commande, CommandeDetail, max_buffer_day){
+plan <- function(DisposUsine, DisposEmployers, plan_today, inventory, planif_data, days_forward, day_idx, max_per_time, prod_day, Commande, PanneauDetail, max_buffer_day, Items){
   #Plan_today contains the row od the commande to plan
   #planif_data is the dataframe containing all already planned stuff
-  list_of_times = c("08:00:00","10:00:00","12:00:00","14:00:00","16:00:00")
+  list_of_times = c("08:00:00","09:00:00","10:00:00","11:00:00","12:00:00","13:00:00","14:00:00","15:00:00","16:00:00", "17:00:00", "18:00:00")
   counter_times = 1
   counter_days = 1
+  
   #days_forward = plan_times
   #day_idx = 1
   #print(day_idx)
+  #print
   if (nrow(plan_today) > 0){ #If we have something to plan for today
     for (i in 1:nrow(plan_today)){
+      
       r = plan_today[i,]
       #print("Planning commande : ")
       #print(r)
       r["CommandeID"]
-      panneaux_todo <- CommandeDetail %>% filter(CommandeID == r[["CommandeID"]], Statut == "TODO")
+      panneaux_todo <- PanneauDetail %>% filter(CommandeID == r[["CommandeID"]], Statut == "TODO")
       #print(panneaux_todo)
-  
       for (j in 1:nrow(panneaux_todo)){
+        #print(nrow(panneaux_todo))
+        #Get start and end time for day we are at
+        min_max_times = DisposUsine %>% select(weekdays(as.Date(days_forward[counter_days])))
+        #print(min_max_times)
+        #print(min_max_times[2,])
+        
+        #Get fabrication time for this panneau
+        fab_time <- Items %>% filter(ItemID == panneaux_todo[j,"PanneauType"]) %>% select(TempsFabrication)
+        #print(as.integer(fab_time[[1]])) #En heures
+        
         #Check that there is not already something planned on this day at that time when calling this again
         start_time = paste(days_forward[counter_days],list_of_times[counter_times],sep= " ")
         start_time
@@ -46,16 +58,33 @@ plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_
         current_work <- planif_data %>% filter(start == start_time, type == "range")
         current_work
         
-        #print("Current work")
-        #print(nrow(current_work))
-        #Check if we need to change day
+        #Check if employee available today
+        day_of_week = weekdays(as.Date(days_forward[counter_days]))
+        #day_of_week <- weekdays(as.Date("2023-06-05"))
         
-        while(nrow(current_work) == max_per_time){
+        nb_available <- DisposEmployers %>% select(day_of_week)
+        nb_available
+        if (sum(nb_available) >= 1){
+          is_available = TRUE
+        }
+        else{
+          is_available = FALSE
+        }
+        #print(is_available)
+        
+        #print(list_of_times[counter_times])
+        #print(min_max_times[1,])
+        #print(as.Date(list_of_times[counter_times], format='h:m:s') < as.Date(min_max_times[1,],format=c('h:m:s')))
+        #Check if we need to change day
+        while(nrow(current_work) == max_per_time | !is_available | list_of_times[counter_times] >= min_max_times[2,]){
+          
           #Go to next spot
-          counter_times = counter_times + 1
+          counter_times = counter_times + fab_time[[1]] #+1
           
-          
-          if (counter_times > 4){
+          #print(min_max_times[2,])
+          #print(list_of_times[counter_times])
+          #print(list_of_times[counter_times] >= min_max_times[2,])
+          if (list_of_times[counter_times] >= min_max_times[2,]){
             counter_times = 1 #Restart the day
             counter_days = counter_days + 1
             day_idx = day_idx + 1
@@ -63,7 +92,7 @@ plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_
           }
           
           if (counter_days > length(days_forward)){ #Do not go further than the horizon of days we want
-            return(list(planif_data, inventory,Commande))
+            return(list(planif_data, inventory,Commande, PanneauDetail))
           }
             #else{
             #  counter_days = counter_days + 1
@@ -85,31 +114,47 @@ plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_
           start_time = paste(days_forward[counter_days],list_of_times[counter_times],sep= " ")
           start_time
           
+          #updaye working or not
           current_work <- planif_data %>% filter(start == start_time, type == "range") #this also takes the commandes fournisseurs
           current_work
+          
+          #update people available or not
+          day_of_week = weekdays(as.Date(days_forward[counter_days]))
+          #days_of_week <- weekdays(as.Date("2023-06-05"))
+          
+          nb_available <- DisposEmployers %>% select(day_of_week)
+          
+          if (sum(nb_available) >= 1){
+            is_available = TRUE
+          }
+          else{
+            is_available = FALSE
+          }
+          is_available
+          
+          #print(list_of_times[counter_times]) #< min_max_times[1,])
+          #print(list_of_times[counter_times+fab_time[[1]]]) #> min_max_times[2,])
+          
         }
         #print(counter_times)
         #print(counter_days)
         #print(day_idx)
-        
-        #Plan  the panneau
-        new_task <- c(panneaux_todo[j,"PanneauID"],start_time, paste(days_forward[counter_days],list_of_times[counter_times+1],sep= " "), paste("Commande",r[["CommandeID"]],sep=" "), "range")
+
+        #Plan  the panneau -- CommandeID-PanneauType-PanneauID
+        new_task <- c(paste(r[["CommandeID"]],panneaux_todo[j,"PanneauType"],panneaux_todo[j,"PanneauID"],sep="-"),start_time, paste(days_forward[counter_days],list_of_times[counter_times+fab_time[[1]]],sep= " "), panneaux_todo[j,"Fichier"],paste("Commande",r[["CommandeID"]],sep=" "), "range")
         new_task
         
         #planif_data <- rbind(planif_data, new_task)
         planif_data[nrow(planif_data)+1,] <- new_task
-        #print(planif_data)
-        #Remove 1 from inventaire for this day and panneau
-        #day_idx
-        #inventory[[day_idx]]
-        #panneaux_todo[i,"PanneauType"]
-        #print(day_idx)
+
         new_inv <- update_inventory_from_plan(inventory[[day_idx]], panneaux_todo[j,"PanneauType"])
         #new_inv
         inventory[[day_idx]]<- new_inv
         #inventory[[day_idx]]
         #print(inventory)
         
+        #Update date of fabrication
+        PanneauDetail <- PanneauDetail %>% mutate(DateFabrication = ifelse(CommandeID == r[["CommandeID"]] & PanneauID == panneaux_todo[j,"PanneauID"] & PanneauType == panneaux_todo[j,"PanneauType"], paste(days_forward[counter_days]),DateFabrication))
         #Update status to En prod if this commande is done on prod day
         #print(Commande)
         #print(r[["CommandeID"]])
@@ -126,16 +171,15 @@ plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_
         
         
       } #This finishes all panneaux for one commande
-      
       #Update the colle and vernis (and other) for each commande
-      other_materials <- c("Colle","Vernis","Scie japonaise")
+      other_materials <- c(4,5,6,7)
       for (i in 1:length(other_materials)){
         new_inv <- update_inventory_from_plan(inventory[[day_idx]], other_materials[[i]])
         inventory[[day_idx]] <- new_inv
       }
       
-      #Emballer -- peut être fait juste après panneau done
-      planif_data[nrow(planif_data)+1,] <- c(paste("Emballer commande",r[["CommandeID"]],sep=" "),paste(days_forward[counter_days],list_of_times[counter_times+1],sep= " "),NA,"À emballer","point")
+      #Emballer -- peut être fait juste après panneau done --
+      planif_data[nrow(planif_data)+1,] <- c(paste("Emballer commande",r[["CommandeID"]],sep=" "),paste(days_forward[counter_days],list_of_times[counter_times+fab_time[[1]]],sep= " "),NA,NA,"À emballer","point")
 
       
     }#This finishes for all commandes we can start today
@@ -147,7 +191,7 @@ plan <- function(plan_today, inventory, planif_data, days_forward, day_idx, max_
     inventory[day_idx+1] <-  inventory[day_idx]
     #counter_days = counter_days + 1
   }
-  return(list(planif_data, inventory, Commande))
+  return(list(planif_data, inventory, Commande, PanneauDetail))
 }
 
 update_inventory_from_plan <- function(inventory_day, panneau_ID, qtty_less = 1){
@@ -176,7 +220,7 @@ update_inventory_from_deliveries <- function(fournisseurs_today, Item_pour_nom_f
     #Ajouter événement réception de commande
     day_to_use <- as.character(day_today)
     fournisseur_nom <- Item_pour_nom_fournisseur %>% filter(ItemID == item) %>% select(Fournisseur)
-    new_row <- c(fournisseur_nom[[1]], paste(day_to_use,"08:00:00",sep=" "), NA, "Receptions fournisseurs", "point")
+    new_row <- c(paste(fournisseur_nom[[1]], "- id",as.integer(fournisseurs_today[i,'CommandeFournisseurID']) ,sep=" "), paste(day_to_use,"08:00:00",sep=" "), NA, NA, "Receptions fournisseurs", "point")
     planif[nrow(planif)+1,] <- new_row
   }
   
@@ -198,33 +242,37 @@ update_inventory_from_deliveries <- function(fournisseurs_today, Item_pour_nom_f
 #Add commande in fournisseur
 add_fournisseur_commande <- function(commandesfournisseurs, to_buy, today_date, max_date){
   #Check if commande already there for this product and quantity
-  #print(to_buy[["ItemID"]])
+  #print(commandesfournisseurs)
+  #print(to_buy)
   next_commandes <- commandesfournisseurs %>% filter(ItemID == to_buy[["ItemID"]], Statut != "Reçue")
-  
-  #print(next_commandes)
   #Only add the commande if no commande for this product is waiting
   if (nrow(next_commandes) == 0){
-    #Get fournisseur from database
-    #fournisseur <- Item %>% filter(ItemID = itemID) %>% select(Fournisseur)
-    livraison = as.character(as.Date(today_date)+3) #Read this from the file
+    #Get delai livraison from database Item
+    #print(to_buy)
+    #print(to_buy[["DélaisLivraison"]])
+    
+    delai_livraison <- to_buy[["DélaisLivraison"]]
+    livraison = as.character(as.Date(today_date) + delai_livraison)
+    
+    #print(livraison)
+    #print(wday(livraison))
     if (wday(livraison) == 1){ #Sunday
       livraison = as.character(as.Date(livraison) + 1)
     }
-    if (wday(livraison) == 6){ #Saturday
+    if (wday(livraison) == 7){ #Saturday
       livraison = as.character(as.Date(livraison) + 2)
     }
     
     #Only plan within the planning window
-    #print(as.Date(livraison) <= as.Date(max_date))
-    #print(livraison)
-    #print(max_date)
     if (as.Date(livraison) <= as.Date(max_date)){
-      new_commande <- c(to_buy[["Fournisseur"]], livraison, to_buy[["ItemID"]] , to_buy[["MinStock"]], "En attente d'approbation")
-      
+      #print(max(commandesfournisseurs[["CommandeFournisseurID"]]))
+      new_commande <- c(max(as.integer(commandesfournisseurs[["CommandeFournisseurID"]]))+1, "En attente d'approbation", paste(today_date), livraison, to_buy[["ItemID"]] , to_buy[["MinStock"]])
+      #print(new_commande)
       commandesfournisseurs <- rbind(commandesfournisseurs, new_commande)
     }
     
   }
+  #print(commandesfournisseurs)
   return(commandesfournisseurs)
 }
 
@@ -238,7 +286,7 @@ get_data_groups <- function(planif_data){
 
 # ------------------------- Planification algo --------------------------------
 
-MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDetail, Items, panneauDetail, today, max_range = 5, buffer = 3, nb_machines = 1){
+MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, PanneauDetail, Items, DisposUsine, DisposEmployers, panneauDetail, today, max_range = 5, buffer = 3, nb_machines = 1){
   #Get dates to plan for
   #today = "2023-06-02" #Today date
   #max_range = 5 #Nb of days we want to plan for
@@ -266,8 +314,8 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
   planned_commandes <- c()
   
   #Initialize planif
-  planif_data <- data.frame(matrix(ncol=5,nrow=0))
-  colnames(planif_data) <- c("content","start","end","group","type")
+  planif_data <- data.frame(matrix(ncol=6,nrow=0))
+  colnames(planif_data) <- c("content","start","end","fichier","group","type")
   planif_data
   #print(planif_data)
   
@@ -303,11 +351,8 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
       planif_data <- fournisseur_output[[2]]
       
       #Update status of fournisseur commande comme recue pour la première journée de la planif seulement
-      CommandesFournisseurs <- CommandesFournisseurs %>% mutate(Statut = ifelse(DateCommandeFReception == plan_times[[1]],"Reçue",Statut))
-      #print("Updated status of commande")
-      #inv_today
-      #print(CommandesFournisseurs)
-      #planif_data
+      #CommandesFournisseurs <- CommandesFournisseurs %>% mutate(Statut = ifelse(DateCommandeFReception == plan_times[[1]],"Reçue",Statut))
+      
     }
     
     
@@ -329,21 +374,22 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
         
         #AJUSTER ICI SELON LES DONNÉES
         #panneau_liste <- Commande %>% filter(CommandeID == commande[["CommandeID"]]) %>% select(Items)
-        items = c(c("1"=2,"2":1,"3":1), c("1":2,"2":1,"3":2), c("1":1,"2":1,"3":1), c("1":1,"2":2,"3":2))
+        items = list(c(2,1,1), c(2,1,2), c(1,1,1), c(1,2,2))
+        items
         panneau_liste <- items[[as.integer(commande[["CommandeID"]])]]
-        #print(panneau_liste)
+        #panneau_liste <- items[[2]]
+        #print(items[[4]])
+        #print(panneau_liste[[1]][[2]])
+        #print(inv_today)
         all_good = TRUE
         
         #Check if we have all material to do the commande today
-        for (p in 1:length(panneau_liste)){ #OR ROW TO CHECK
-          if (panneau_liste[[panneau_names[p]]] > inv_today[inv_today["ItemID"]==panneau_names[p],"QuantiteDisponible"]){
+        for (p in 1:length(panneau_liste)){
+          if (panneau_liste[[panneau_names[[p]]]] > inv_today[inv_today["ItemID"]==panneau_names[p],"QuantiteDisponible"]){
             all_good = FALSE #Cannot start this project
           }
           
-          #Account for projects half done :
-          #Filter on status TODO
-          #Suppose here that the number total of panneaux per commande is updated to the remaining number
-          #When panneau is completed, do panneau category - 1
+          
         }
         all_good
         
@@ -360,11 +406,13 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
           #print("commande") #This is ok
           #print(commande)
           #print(planned_today) #Can this be empty?? if all en attent d'inventaire?
-          plan_output <- plan(commande, inventory, planif_data, plan_times[j:length(plan_times)], j, nb_machines, today, Commande, CommandeDetail, max_buffer_day)
+          plan_output <- plan(DisposUsine, DisposEmployers, commande, inventory, planif_data, plan_times[j:length(plan_times)], j, nb_machines, today, Commande, PanneauDetail, max_buffer_day, Items)
           
           planif_data <- plan_output[[1]]
+          #print(planif_data)
           inventory <- plan_output[[2]]
           Commande <-  plan_output[[3]]
+          PanneauDetail <- plan_output[[4]]
           
           #print("Planif data :")
           #print(planif_data)
@@ -435,8 +483,9 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, CommandeDeta
   print(Commande)
   data_groups <- get_data_groups(planif_data)
   print(data_groups)
+  print(PanneauDetail)
 
-  return(list(Commande, Inventory, CommandesFournisseurs, planif_data, data_groups))
+  return(list(Commande, CommandesFournisseurs, PanneauDetail, planif_data, data_groups))
 }
   
 # ------------------------- Running this ---------------------
