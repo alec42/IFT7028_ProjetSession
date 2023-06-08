@@ -6,10 +6,11 @@ library(rjson)
 library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
+library(timevis)
 
-##########################
-# Interface Utilisateur #
-########################
+###########################
+## Interface Utilisateur ##
+###########################
 
 ui <- shinydashboard::dashboardPage(
   header = shinydashboard::dashboardHeader(),
@@ -19,7 +20,7 @@ ui <- shinydashboard::dashboardPage(
   ##########
   sidebar = shinydashboard::dashboardSidebar(
     shinydashboard::sidebarMenu(id="sidebarMenu",
-      shinydashboard::menuItem("Tableau de bord", tabName = "clientOrders", icon = icon("dashboard")), # was commandes client
+      shinydashboard::menuItem("Tableau de bord", tabName = "clientOrders", icon = icon("dashboard")),
       shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("list-alt")),
       shinydashboard::menuItem("Réception (fournisseurs)", tabName = "purchaseOrders", icon = icon("envelope")),
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("road")),
@@ -28,14 +29,16 @@ ui <- shinydashboard::dashboardPage(
     )
   ),
 
-  #############
-  ## Contenu ##
-  #############
+  ##########
+  ## Body ##
+  ##########
   body = shinydashboard::dashboardBody(
     shinyjs::useShinyjs(),
     tags$head(tags$style(HTML(".box {overflow: scroll;}"))),
 
     shinydashboard::tabItems(
+      
+      #### Inventaire ####
       shinydashboard::tabItem(tabName ="inventory",
         shiny::fluidRow(
           shinydashboardPlus::box(title="Ajouter/Retirer un nouvel item", width = 12,
@@ -62,6 +65,7 @@ ui <- shinydashboard::dashboardPage(
         ),
       ),
 
+      #### Dashboard ####
       shinydashboard::tabItem(tabName ="clientOrders",
         shiny::fluidRow(
           shinydashboardPlus::box(title = "Toutes les commandes", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary",
@@ -96,6 +100,7 @@ ui <- shinydashboard::dashboardPage(
         )
       ),
 
+      #### Réceptions ####
       shinydashboard::tabItem(tabName ="purchaseOrders",
         splitLayout(cellWidths = c("0", "25%", "25%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
           shiny::textInput("orderID_PO", "Numéro de commande"),
@@ -116,6 +121,7 @@ ui <- shinydashboard::dashboardPage(
         )
       ),
 
+      #### Planification journalière ####
       shinydashboard::tabItem(tabName ="dailyProduction",
         shinydashboardPlus::box(title = "Planification pour la journée", solidHeader = TRUE, width = 12,
         timevisOutput("timelineDaily"),
@@ -123,7 +129,8 @@ ui <- shinydashboard::dashboardPage(
         tableOutput('tableDaily_2')
         )
       ),
-
+      
+      #### Planification hebdomadaire ####
       shinydashboard::tabItem(tabName ="weeklyProduction",
         shinydashboardPlus::box(title = "Planification pour la semaine", solidHeader = TRUE, width = 12,
         timevisOutput("timelineWeekly"),
@@ -131,6 +138,7 @@ ui <- shinydashboard::dashboardPage(
         )
       ),
 
+      #### Expéditions ####
       shinydashboard::tabItem(tabName = "expedition",
         splitLayout(cellWidths = c("0", "25%", "25%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
           shiny::textInput("orderID_exp", "Numéro de commande"),
@@ -161,6 +169,9 @@ ui <- shinydashboard::dashboardPage(
     )
   )
 )
+############
+## END UI ##
+############
 
 source("scripts/googlesheets_access.R") # get link to gs
 source("app_schedule.R")
