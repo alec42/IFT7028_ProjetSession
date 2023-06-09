@@ -14,7 +14,7 @@ library(tidyverse)
 library(htmlwidgets)
 
 #source("scripts/googlesheets_access.R") # get link to gs
-source("planning_algo.R")
+source("scripts/planning_algo.R")
 
 #Data from database (temporary) :
 items = c(c("1"=2,"2":1,"3":1), c("1":2,"2":1,"3":2), c("1":1,"2":1,"3":1), c("1":1,"2":2,"3":2))
@@ -31,9 +31,9 @@ Commande <- data.frame(
   DateCommandeCreation = c("2023-05-25","2023-05-27","2023-05-30","2023-05-29"),
   DateCommandeLivraison = c("2023-06-05", "2023-06-08", "2023-06-04","2023-06-10"),
   FichierAssemblage = c("googleDrive\\complet\\1\\infos.json","googleDrive\\complet\\2\\infos.json","googleDrive\\complet\\3\\infos.json","googleDrive\\complet\\3\\infos.json")#,
-  #Items = list(list("1"=2,"2":1,"3":1), 
-               #c("1":2,"2":1,"3":2), 
-               #c("1":1,"2":1,"3":1), 
+  #Items = list(list("1"=2,"2":1,"3":1),
+               #c("1":2,"2":1,"3":2),
+               #c("1":1,"2":1,"3":1),
                #c("1":1,"2":2,"3":2))
 )
 
@@ -41,7 +41,7 @@ Commande <- data.frame(
 PanneauDetail <- data.frame(
   CommandeID = c(rep("1",4),rep("2",5),rep("3",3), rep("4",5)),
   PanneauID = c(1,2,3,4,
-                5,6,7,8,9, 
+                5,6,7,8,9,
                 10,11,12,
                 13,14,15,16,17),
   PanneauType = c(1,2,2,3,
@@ -179,7 +179,7 @@ server <- function(input, output) {
     timevis(data=values$weekDF, groups=values$weekGroupsDF)
 
     #Today planif :
-    #timevis(data=values$todayDF, groups=values$todayGroupsDF)#, 
+    #timevis(data=values$todayDF, groups=values$todayGroupsDF)#,
             #options=list(
             #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
   })
@@ -187,7 +187,7 @@ server <- function(input, output) {
   #Today tables
   #output$table1 <- renderTable(values$panelDF)  #Current day panneaux prod
   #output$table2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
-  
+
   #Full planif table
   output$table1 <- renderTable(values$weekFournisseurs)
 }

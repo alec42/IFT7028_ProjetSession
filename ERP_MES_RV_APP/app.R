@@ -25,7 +25,7 @@ ui <- shinydashboard::dashboardPage(
       shinydashboard::menuItem("Réception (fournisseurs)", tabName = "purchaseOrders", icon = icon("envelope")),
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("road")),
       shinydashboard::menuItem("Production journalière", tabName = "dailyProduction", icon = icon("calendar")),
-      shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar"))
+      shinydashboard::menuItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar"),selected=TRUE)
     )
   ),
 
@@ -138,9 +138,31 @@ ui <- shinydashboard::dashboardPage(
 
       #### Planification hebdomadaire ####
       shinydashboard::tabItem(tabName ="weeklyProduction",
+        shinydashboardPlus::box(title = "Horaire de l'usine pour la semaine", solidHeader = TRUE, width = 12,
+          splitLayout(cellWidths = c("0", "8%", "6%", "6%", "5%"),
+              tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
+            shiny::selectInput("factoryDay", "Jour de la semaine", choices = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")),
+            shiny::selectInput("factoryClose", "Fermeture", choices = sprintf("%02d:00:00", seq(8, 18))),
+            shiny::selectInput("factoryOpen", "Ouverture", choices = sprintf("%02d:00:00", seq(8, 18))),
+            br(),
+            tableOutput('factoryHoursTable')
+          ),
+          shiny::actionButton("updateFactoryHours", "Mettre à jour les heures"),
+          shiny::actionButton("refreshFactoryHours", "Annuler"),
+          shiny::actionButton("saveFactoryHours", "Sauvegarder")
+        ),
+        shinydashboardPlus::box(title = "Horaire de l'employé pour la semaine", solidHeader = TRUE, width = 12,
+          shinyWidgets::checkboxGroupButtons(
+            inputId = "employeeSchedule", label = "Disponibilités",
+            choices = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"), individual = TRUE,
+            checkIcon = list(
+              yes = tags$i(class = "fa fa-circle", style = "color: steelblue"),
+              no = tags$i(class = "fa fa-circle-o", style = "color: steelblue"))
+          )
+        ),
         shinydashboardPlus::box(title = "Planification pour la semaine", solidHeader = TRUE, width = 12,
-        timevisOutput("timelineWeekly"),
-        tableOutput('tableWeekly_1')
+          timevisOutput("timelineWeekly"),
+          tableOutput('tableWeekly_1')
         )
       ),
 
@@ -202,6 +224,49 @@ employeesDispoSheetName <- "DisposEmployés"
 factoryHoursSheetName <- "DisposUsine"
 dt_options <- list(dom = 't')
 
+############################
+# Getting Planning ########
+###########################
+# add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines
+MES_output <- MES_planif(values$customerOrders, values$inventory, values$purchaseOrders, values$panneaux, values$items, values$factory, values$employees, Sys.Date(), max_range = 5, buffer = 3, nb_machines = 1)
+
+#Update the real data tables in BD
+Commande <- MES_output[[1]]
+CommandesFournisseurs <- MES_output[[2]]
+PanneauDetail <- MES_output[[3]]
+
+#Local data for interface
+data <- MES_output[[4]]
+data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
+data_groups <- MES_output[[5]]
+
+#TODO : Save planif data to some BD
+# sheet_append  somehwere
+
+#Get today prod -- for timeline
+data_today <- data %>%
+  filter(str_split_i(start, " ", 1) == today)
+data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
+
+#Get today unique groups -- for timeline
+data_today_groups <- data_today %>%
+  select(group) %>%
+  mutate(group2 = group) %>%
+  distinct() %>%
+  rename(id = group, content = group2)
+## Getting Planning - Code de Laurence à bouger et intégrer dans l'app
+
+#Get today planif -- for table
+data_today_small <- data_today %>% select(-FichierDecoupe)
+panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
+
+#Get today fournisseurs -- for table
+fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
+
+#Get fournisseurs in planif -- for table
+fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
+#DONE planif
+
 #############
 ## Server ##
 #############
@@ -223,13 +288,13 @@ server <- function(input, output, session) {
   values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName) |> mutate(across(c(Monday, Tuesday, Wednesday, Thursday, Friday), ~format(.x, "%H:%M:%S")))
 
   ## Timeline
-  # values$panelDF <- panneau_df
-  # values$manufacturerDF <- fournisseurs_today
-  # values$todayDF <- data_today
-  # values$todayGroupsDF <- data_today_groups
-  # values$weekDF <- data
-  # values$weekGroupsDF <- data_groups
-  # values$weekFournisseurs <- fournisseurs_planif
+  values$panelDF <- panneau_df
+  values$manufacturerDF <- fournisseurs_today
+  values$todayDF <- data_today_to_timevis
+  values$todayGroupsDF <- data_today_groups
+  values$weekDF <- data_to_timevis
+  values$weekGroupsDF <- data_groups
+  values$weekFournisseurs <- fournisseurs_planif
 
 
   ############################
@@ -342,6 +407,9 @@ server <- function(input, output, session) {
                                             Type = input$inventory_TypeSelect,
                                             Dimensions = input$inventory_DimensionsSelect,
                                             MinStock = input$inventory_MinStockSelect
+    values$inventory <- values$inventory |> add_row(
+      ItemID=nrow(values$items) + 1, QuantiteDisponible=0, DateMiseAJour=format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    )
     )
   })
 
@@ -534,7 +602,23 @@ server <- function(input, output, session) {
 
   # # Affichage par défaut
   # output$tableWeekly_1 <- renderTable(values$weekFournisseurs)
+  # Button : Mettre à jour les heures
+  output$factoryHoursTable <- renderTable(values$factory)
+  observeEvent(input$updateFactoryHours, {
+    values$factory[input$factoryDay] <- ifelse(values$factory["MomentID"]=="Ouverture", input$factoryOpen, input$factoryClose)
+    print(values$factory)
+  })
 
+  # Button : Annuler
+  observeEvent(input$refreshFactoryHours, {
+    values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName) |>
+      mutate(across(c(Monday, Tuesday, Wednesday, Thursday, Friday), ~format(.x, "%H:%M:%S")))
+  })
+
+  # Button : Enregistrer
+  observeEvent(input$saveFactoryHours, {
+    googlesheets4::sheet_write(data = values$factory, ss = link_gs_erp, sheet = factoryHoursSheetName)
+  })
 }
 ################
 ## END SERVER ##
