@@ -123,6 +123,12 @@ ui <- shinydashboard::dashboardPage(
 
       #### Planification journalière ####
       shinydashboard::tabItem(tabName ="dailyProduction",
+        shiny::textInput("panneauID", "ID du panneau"),
+        shiny::selectInput("panneauStatus", "Choix statut", c("TODO", "DONE")),
+        shiny::actionButton("updatePanneauBtn", "Mettre à jour le statut"),
+        shiny::actionButton("cancelPanneauBtn", "Annuler"),
+        shiny::actionButton("savePanneauBtn", "Enregistrer"),
+        DT::dataTableOutput('Panneaux_DT'),
         shinydashboardPlus::box(title = "Planification pour la journée", solidHeader = TRUE, width = 12,
         timevisOutput("timelineDaily"),
         tableOutput('tableDaily_1'),
@@ -191,49 +197,51 @@ purchaseOrdersSheetName <- "CommandesFournisseurs"
 itemsSheetName <- "Items"
 InventorySheetName <- "Inventaire"
 clientsSheetName <- "Clients"
+panneauxSheetName <- "PanneauxDetail"
+piecesSheetName <- "PiecesDetail"
+employeesDispoSheetName <- "DisposEmployés"
+factoryHoursSheetName <- "DisposUsine"
 dt_options <- list(dom = 't')
-#il manquerait PanneauDetail, DisposEmployers, DisposUsine
 
-############################
-# Getting Planning ########
-###########################
-#today = ?
-MES_output <- MES_planif(values$customerOrders, values$inventory, values$purchaseOrders, PanneauDetail, values$items, DisposUsine, DisposEmployers, today, max_range = 5, buffer = 3, nb_machines = 1)
+## Getting Planning - Code de Laurence à bouger et intégrer dans l'app
 
-#Update the real data tables in BD
-Commande <- MES_output[[1]]
-CommandesFournisseurs <- MES_output[[2]]
-PanneauDetail <- MES_output[[3]]
-
-#Local data for interface
-data <- MES_output[[4]]
-data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
-data_groups <- MES_output[[5]]
-
-#TODO : Save planif data to some BD
-
-#Get today prod -- for timeline
-data_today <- data %>%
-  filter(str_split_i(start, " ", 1) == today)
-data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
-
-#Get today unique groups -- for timeline
-data_today_groups <- data_today %>%
-  select(group) %>%
-  mutate(group2 = group) %>%
-  distinct() %>%
-  rename(id = group, content = group2)
-
-#Get today planif -- for table
-data_today_small <- data_today %>% select(-FichierDecoupe)
-panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
-
-#Get today fournisseurs -- for table
-fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
-
-#Get fournisseurs in planif -- for table
-fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
-#DONE planif
+# #today = ?
+# MES_output <- MES_planif(values$customerOrders, values$inventory, values$purchaseOrders, values$PanneauDetail, values$items, values$DisposUsine, values$DisposEmployés, Sys.Date(), max_range = 5, buffer = 3, nb_machines = 1)
+# 
+# #Update the real data tables in BD
+# Commande <- MES_output[[1]]
+# CommandesFournisseurs <- MES_output[[2]]
+# PanneauDetail <- MES_output[[3]]
+# 
+# #Local data for interface
+# data <- MES_output[[4]]
+# data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
+# data_groups <- MES_output[[5]]
+# 
+# #TODO : Save planif data to some BD
+# 
+# #Get today prod -- for timeline
+# data_today <- data %>%
+#   filter(str_split_i(start, " ", 1) == today)
+# data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
+# 
+# #Get today unique groups -- for timeline
+# data_today_groups <- data_today %>%
+#   select(group) %>%
+#   mutate(group2 = group) %>%
+#   distinct() %>%
+#   rename(id = group, content = group2)
+# 
+# #Get today planif -- for table
+# data_today_small <- data_today %>% select(-FichierDecoupe)
+# panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
+# 
+# #Get today fournisseurs -- for table
+# fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
+# 
+# #Get fournisseurs in planif -- for table
+# fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
+# #DONE planif
 
 #############
 ## Server ##
@@ -250,15 +258,19 @@ server <- function(input, output, session) {
   values$inventory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
   values$items <- read_sheet(link_gs_erp, sheet = itemsSheetName)
   values$clients <- read_sheet(link_gs_erp, sheet = clientsSheetName)
+  values$panneaux <- read_sheet(link_gs_erp, sheet = panneauxSheetName)
+  values$pieces <- read_sheet(link_gs_erp, sheet = piecesSheetName)
+  values$employees <- read_sheet(link_gs_erp, sheet = employeesDispoSheetName)
+  values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName)
   
   ## Timeline
-  values$panelDF <- panneau_df
-  values$manufacturerDF <- fournisseurs_today
-  values$todayDF <- data_today
-  values$todayGroupsDF <- data_today_groups
-  values$weekDF <- data
-  values$weekGroupsDF <- data_groups
-  values$weekFournisseurs <- fournisseurs_planif
+  # values$panelDF <- panneau_df
+  # values$manufacturerDF <- fournisseurs_today
+  # values$todayDF <- data_today
+  # values$todayGroupsDF <- data_today_groups
+  # values$weekDF <- data
+  # values$weekGroupsDF <- data_groups
+  # values$weekFournisseurs <- fournisseurs_planif
   
   
   ############################
@@ -514,25 +526,56 @@ server <- function(input, output, session) {
   ## Menu : Production journalière ##
   ###################################
   
-  # Affichage par défaut
-  output$timelineDaily <- renderTimevis({
-    timevis(data=values$todayDF, groups=values$todayGroupsDF)
-    #options=list(
-    #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
-  })
-  output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
-  output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
-  output$timelineWeekly <- renderTimevis({
-    timevis(data=values$weekDF, groups=values$weekGroupsDF)
+  # # Affichage par défaut
+  # output$timelineDaily <- renderTimevis({
+  #   timevis(data=values$todayDF, groups=values$todayGroupsDF)
+  #   #options=list(
+  #   #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
+  # })
+  # output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
+  # output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
+  # output$timelineWeekly <- renderTimevis({
+  #   timevis(data=values$weekDF, groups=values$weekGroupsDF)
+  # })
+  
+  # Affichage : État du panneau
+  output$Panneaux_DT <- renderDT(
+    values$panneaux |> filter(PanneauID == input$panneauID),
+    options = dt_options, rownames = FALSE, selection = "none")
+  
+  # Button : Mettre à jour le statut
+  observeEvent(input$updatePanneauBtn, {
+    values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$Statut <- input$panneauStatus
+    if (input$panneauStatus == "DONE"){
+      values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$DateFabrication <- Sys.Date()
+    }
+      
+    if (prod(sapply(values$panneaux |> 
+          filter(CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID) 
+          |> select("Statut"), function(x) x == "DONE")) == 1){
+      values$customerOrders[values$customerOrders$CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID, ]$Statut <- "Complétée"
+    }
   })
   
+  # Button : Annuler
+  observeEvent(input$cancelPanneauBtn, {
+    values$panneaux <- read_sheet(link_gs_erp, sheet = panneauxSheetName)
+    values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
+  })
+  
+  # Button : Enregistrer
+  observeEvent(input$savePanneauBtn, {
+   googlesheets4::sheet_write(data = values$panneaux, ss = link_gs_erp, sheet = panneauxSheetName)
+    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
+  })
   
   ####################################
   ## Menu : Production hebdomadaire ##
   ####################################
   
-  # Affichage par défaut
-  output$tableWeekly_1 <- renderTable(values$weekFournisseurs)
+  # # Affichage par défaut
+  # output$tableWeekly_1 <- renderTable(values$weekFournisseurs)
+  
 }
 ################
 ## END SERVER ##
