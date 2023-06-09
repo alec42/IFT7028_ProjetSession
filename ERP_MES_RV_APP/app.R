@@ -227,45 +227,45 @@ dt_options <- list(dom = 't')
 ############################
 # Getting Planning ########
 ###########################
-# add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines
-MES_output <- MES_planif(values$customerOrders, values$inventory, values$purchaseOrders, values$panneaux, values$items, values$factory, values$employees, Sys.Date(), max_range = 5, buffer = 3, nb_machines = 1)
-
-#Update the real data tables in BD
-Commande <- MES_output[[1]]
-CommandesFournisseurs <- MES_output[[2]]
-PanneauDetail <- MES_output[[3]]
-
-#Local data for interface
-data <- MES_output[[4]]
-data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
-data_groups <- MES_output[[5]]
-
-#TODO : Save planif data to some BD
-# sheet_append  somehwere
-
-#Get today prod -- for timeline
-data_today <- data %>%
-  filter(str_split_i(start, " ", 1) == today)
-data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
-
-#Get today unique groups -- for timeline
-data_today_groups <- data_today %>%
-  select(group) %>%
-  mutate(group2 = group) %>%
-  distinct() %>%
-  rename(id = group, content = group2)
-## Getting Planning - Code de Laurence à bouger et intégrer dans l'app
-
-#Get today planif -- for table
-data_today_small <- data_today %>% select(-FichierDecoupe)
-panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
-
-#Get today fournisseurs -- for table
-fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
-
-#Get fournisseurs in planif -- for table
-fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
-#DONE planif
+# # add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines
+# MES_output <- MES_planif(values$customerOrders, values$inventory, values$purchaseOrders, values$panneaux, values$items, values$factory, values$employees, Sys.Date(), max_range = 5, buffer = 3, nb_machines = 1)
+#
+# #Update the real data tables in BD
+# Commande <- MES_output[[1]]
+# CommandesFournisseurs <- MES_output[[2]]
+# PanneauDetail <- MES_output[[3]]
+#
+# #Local data for interface
+# data <- MES_output[[4]]
+# data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
+# data_groups <- MES_output[[5]]
+#
+# #TODO : Save planif data to some BD
+# # sheet_append  somehwere
+#
+# #Get today prod -- for timeline
+# data_today <- data %>%
+#   filter(str_split_i(start, " ", 1) == today)
+# data_today_to_timevis <- data_today %>% mutate(content = ifelse(type=="range", paste("PanneauID", content, sep=" "), content))
+#
+# #Get today unique groups -- for timeline
+# data_today_groups <- data_today %>%
+#   select(group) %>%
+#   mutate(group2 = group) %>%
+#   distinct() %>%
+#   rename(id = group, content = group2)
+# ## Getting Planning - Code de Laurence à bouger et intégrer dans l'app
+#
+# #Get today planif -- for table
+# data_today_small <- data_today %>% select(-FichierDecoupe)
+# panneau_df <- merge(PanneauDetail, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
+#
+# #Get today fournisseurs -- for table
+# fournisseurs_today <- CommandesFournisseurs %>% filter(DateCommandeFReception == today)
+#
+# #Get fournisseurs in planif -- for table
+# fournisseurs_planif <- CommandesFournisseurs %>% filter(DateCommandeFReception >= today)
+# #DONE planif
 
 #############
 ## Server ##
@@ -288,13 +288,13 @@ server <- function(input, output, session) {
   values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName) |> mutate(across(c(Monday, Tuesday, Wednesday, Thursday, Friday), ~format(.x, "%H:%M:%S")))
 
   ## Timeline
-  values$panelDF <- panneau_df
-  values$manufacturerDF <- fournisseurs_today
-  values$todayDF <- data_today_to_timevis
-  values$todayGroupsDF <- data_today_groups
-  values$weekDF <- data_to_timevis
-  values$weekGroupsDF <- data_groups
-  values$weekFournisseurs <- fournisseurs_planif
+  # values$panelDF <- panneau_df
+  # values$manufacturerDF <- fournisseurs_today
+  # values$todayDF <- data_today_to_timevis
+  # values$todayGroupsDF <- data_today_groups
+  # values$weekDF <- data_to_timevis
+  # values$weekGroupsDF <- data_groups
+  # values$weekFournisseurs <- fournisseurs_planif
 
 
   ############################
@@ -406,10 +406,9 @@ server <- function(input, output, session) {
                                             Description = input$inventory_DescriptionSelect,
                                             Type = input$inventory_TypeSelect,
                                             Dimensions = input$inventory_DimensionsSelect,
-                                            MinStock = input$inventory_MinStockSelect
+                                            MinStock = input$inventory_MinStockSelect)
     values$inventory <- values$inventory |> add_row(
       ItemID=nrow(values$items) + 1, QuantiteDisponible=0, DateMiseAJour=format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-    )
     )
   })
 
@@ -577,9 +576,10 @@ server <- function(input, output, session) {
       values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$DateFabrication <- Sys.Date()
     }
 
-    if (prod(sapply(values$panneaux |>
-          filter(CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID)
-          |> select("Statut"), function(x) x == "DONE")) == 1){
+    if (prod(sapply(
+          values$panneaux |> filter(CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID) |> select("Statut"),
+          function(x) x == "DONE")
+        ) == 1) {
       values$customerOrders[values$customerOrders$CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID, ]$Statut <- "Complétée"
     }
   })
