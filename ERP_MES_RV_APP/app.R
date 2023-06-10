@@ -586,6 +586,9 @@ server <- function(input, output, session) {
         ) == 1) {
       values$customerOrders[values$customerOrders$CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID, ]$Statut <- "Complétée"
     }
+    
+    values$panelDF[values$panelDF$PanneauID == input$panneauID, ]$Statut <- input$panneauStatus
+    
   })
 
   # Button : Annuler
@@ -738,8 +741,8 @@ server <- function(input, output, session) {
     write_sheet(values$SheetsPlanifHistory, link_gs_erp, "PlanifHistorique")
   })
   
-  output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
-  output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
+  #output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
+  #output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
   
   observeEvent(input$HeaderButtonHelp, {
 
