@@ -597,6 +597,10 @@ server <- function(input, output, session) {
   observeEvent(input$cancelPanneauBtn, {
     values$panneaux <- read_sheet(link_gs_erp, sheet = panneauxSheetName)
     values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
+    
+    values$panelDF <- values$panneau_df |>
+      mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")
+    
   })
 
   # Button : Enregistrer
@@ -682,7 +686,7 @@ server <- function(input, output, session) {
       rename(id = group, content = group2)
     #Get today planif (table output)
     data_today_small <- data_today %>% select(-FichierDecoupe)
-    panneau_df <- merge(values$panneaux, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
+    values$panneau_df <- merge(values$panneaux, data_today_small, by.x='PanneauID', by.y = "content") %>% select(-type,-group)
     #Get today fournisseurs (table output)
     fournisseurs_today <- values$purchaseOrders %>% filter(as.Date(DateCommandeFReception) == input$dayPlanif)
 
@@ -693,7 +697,7 @@ server <- function(input, output, session) {
     fournisseurs_planif <- values$purchaseOrders %>% filter(as.Date(DateCommandeFReception) >= input$dayPlanif)
 
     ## Timeline
-    values$panelDF <- panneau_df |>
+    values$panelDF <- values$panneau_df |>
       mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")
     values$manufacturerDF <- fournisseurs_today |>
       mutate(DateCommande=format(as.Date(DateCommandeFCreation), "%Y-%m-%d"), DateReception=format(DateCommandeFReception, "%Y-%m-%d"), .keep = "unused")
