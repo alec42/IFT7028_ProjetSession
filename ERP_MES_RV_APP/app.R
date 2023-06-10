@@ -15,7 +15,7 @@ Sys.setlocale("LC_TIME", "en_US")
 
 source("scripts/googlesheets_access.R") # get link to gs
 source("scripts/planning_algo.R", local = TRUE)
-# source("scripts/google_drive_json_update.R")
+source("scripts/google_drive_json_update_v2.R", local = TRUE)
 
 # GDriveJSONUpdate(
 #   dossier_racine = "Industrie_VR_IFT7028/", dossier_commandee = "commandes_json/commandée/", dossier_importee = "commandes_json/importée/",
@@ -652,11 +652,25 @@ server <- function(input, output, session) {
     googlesheets4::sheet_write(data = values$employees, ss = link_gs_erp, sheet = employeesDispoSheetName)
   })
 
-  #### Header Buttons ####
+  #### System Refresh ####
   observeEvent(input$HeaderButton, {
     shinyWidgets::sendSweetAlert(session, closeOnClickOutside = T, html = T, title = "Mise à jour effectuée", width = "45%", text = "Les données ont été mises à jour.", type = "success")
     #### Planning ####
     # add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines
+    
+    loadNewJSON <- GDriveJSONUpdate(dossier_racine = "Industrie_VR_IFT7028/", 
+                              dossier_commandee = "commandes_json/commandée/",
+                              dossier_importee = "commandes_json/importée/",
+                              dossier_3d = "commandes_3d/",
+                              customerOrders = values$customerOrders,
+                              customers = values$clients)
+    
+    values$customerOrders <- loadNewJSON[[1]]
+    values$clients <- loadNewJSON[[2]]
+    
+    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
+    googlesheets4::sheet_write(data = values$clients, ss = link_gs_erp, sheet = clientsSheetName)
+    
     MES_output <- MES_planif(
       values$customerOrders, values$inventory, values$purchaseOrders, values$panneaux, values$items, values$factory, values$employees,
       input$dayPlanif, max_range = as.numeric(input$maxDaysPlanif), buffer = as.numeric(input$bufferDaysPlanif), nb_machines = as.numeric(input$nbMachinesPlanif))
