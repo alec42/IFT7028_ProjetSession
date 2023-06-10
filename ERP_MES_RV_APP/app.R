@@ -670,15 +670,14 @@ server <- function(input, output, session) {
 
     # Affichage par défaut
     output$timelineDaily <- renderTimevis({
-      timevis(data=values$todayDF, groups=values$todayGroupsDF)
+      timevis(data=values$todayDF |> filter(!(hour(time) >= 0 & hour(time) < 8)), groups=values$todayGroupsDF)
       #options=list(
       #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
     })
     output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
     output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
     output$timelineWeekly <- renderTimevis({
-      timevis(data=values$weekDF, groups=values$weekGroupsDF) |>
-        options(hiddenDates=list(start = as.integer(lubridate::hm("00:00")*1000), end= as.integer(lubridate::hm("06:00")*1000)))
+      timevis(data=values$weekDF, groups=values$weekGroupsDF)
     })
     #TODO : Save planif data to some BD
     # sheet_append  somehwere
