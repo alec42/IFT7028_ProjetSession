@@ -230,13 +230,7 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
             br(),
             DT::dataTableOutput('Panneaux_DT')
           ),
-          shinydashboardPlus::box(title = "Planification pour la journée", solidHeader = TRUE, width = 12,
-            fluidRow(
-              column(width=2, shiny::dateInput("dayPlanif", label = "Date", value = Sys.Date())),
-              column(width=3, shiny::textInput("maxDaysPlanif", label = "Nombre maximal jours à planifier", value = 5)),
-              column(width=3, shiny::textInput("bufferDaysPlanif", label = "Période tampon pour planification", value = 3)),
-              column(width=2, shiny::textInput("nbMachinesPlanif",label = "Machines Disponibles", value = 1))
-            ),
+          shinydashboardPlus::box(title = textOutput('titlePlanifDaily'), solidHeader = TRUE, width = 12,
             timevisOutput("timelineDaily"),
             tableOutput('tableDaily_1'),
             tableOutput('tableDaily_2')
@@ -247,6 +241,12 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
       #### Planification hebdomadaire ####
       shinydashboard::tabItem(tabName ="weeklyProduction",
         shinydashboardPlus::box(title = "Planification pour la semaine", solidHeader = TRUE, width = 12,
+          fluidRow(
+            column(width=2, shiny::dateInput("dayPlanif", label = "Date", value = Sys.Date())),
+            column(width=3, shiny::textInput("maxDaysPlanif", label = "Horizon de planification", value = 5)),
+            column(width=3, shiny::textInput("bufferDaysPlanif", label = "Période tampon pour planification", value = 3)),
+            column(width=2, shiny::textInput("nbMachinesPlanif",label = "Machines Disponibles", value = 1))
+          ),
           timevisOutput("timelineWeekly"),
           tableOutput('tableWeekly_1')
         )
@@ -573,10 +573,18 @@ server <- function(input, output, session) {
   })
 
   #### Menu : Production journalière ####
-
+  output$titlePlanifDaily <- renderText(paste("Planification pour la journée du", lubridate::day(input$dayPlanif), lubridate::month(input$dayPlanif, label = T, abbr = F, locale = "fr_ca")))
   # Affichage : État du panneau
   output$Panneaux_DT <- renderDT(
-    values$panneaux |> filter(PanneauID == as.numeric(input$panneauID)) |> mutate(`Date Fabrication` = as.Date(DateFabrication)),
+    values$panneaux |>
+      filter(PanneauID == as.numeric(input$panneauID)) |>
+      mutate(
+        `Commande ID` = CommandeID, `Panneau ID` = PanneauID,
+        `Panneau Type` = PanneauType, `Statut Commande` = Statut,
+        `Date Fabrication` = as.Date(DateFabrication), `Date Prevue` = DatePrevue,
+        `Fichier Decoupe` = FichierDecoupe,
+        .keep = "unused"
+      ),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Mettre à jour le statut
