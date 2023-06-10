@@ -9,6 +9,7 @@ library(shinydashboard)
 library(shinydashboardPlus)
 library(timevis)
 
+Sys.setlocale("LC_TIME", "en_US")
 
 # day_planif <- Sys.Date()
 # day_planif <- "2023-05-31"
@@ -655,6 +656,10 @@ server <- function(input, output, session) {
     values$customerOrders <- MES_output[[1]]
     values$purchaseOrders <- MES_output[[2]]
     values$panneaux <- MES_output[[3]]
+    
+    googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
+    googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs_erp, sheet = purchaseOrdersSheetName)
+    googlesheets4::sheet_write(data = values$panneaux, ss = link_gs_erp, sheet = panneauxSheetName)
 
     ## Local data for interface
     data <- MES_output[[4]]
