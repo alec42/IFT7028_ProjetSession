@@ -95,7 +95,7 @@ GDriveUpdatePiecesDetail <- function(
   startingPieceID <- max(piecesDetail$PieceID) + 1
 
   ####### fonction OPTIMISATION Equipe 3 #########
-  # GetPieceDetailDataFrame(paste0(dossier_racine, commandeID), startingPanneauID, startingPieceID)
+  # GetPieceDetailDataFrame(commandeID, startingPanneauID, startingPieceID)
   # return un dataframe piecesDetail complété pour LA commande et List[(id_panneau, FichierDecoupe)]
 
   # le dataframe retourné par la fonction d'optimisation

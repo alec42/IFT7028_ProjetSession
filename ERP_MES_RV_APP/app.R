@@ -330,8 +330,8 @@ server <- function(input, output, session) {
   # Affichage : Toutes les commandes
   output$CustomerOrders_DT <- renderDT(
     values$customerOrders |> left_join(values$clients, by = "ClientID") |>
-      mutate(Client = paste(Prenom, ' ', Nom), Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeCreation), Date_Livraison = as.Date(DateCommandeLivraison)) |>
-      select(CommandeID, Client, Prix, Statut, Date_Commandee, Date_Livraison),
+      mutate(Client = paste(Prenom, ' ', Nom), Prix = scales::dollar(Prix), `Date Commandee` = as.Date(DateCommandeCreation), `Date Livraison` = as.Date(DateCommandeLivraison)) |>
+      select(CommandeID, Client, Prix, Statut, `Date Commandee`, `Date Livraison`),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Affichage : Revenus
@@ -409,16 +409,20 @@ server <- function(input, output, session) {
                   unnest(Items) |>
                   separate(Items, into = c("ItemID", "Quantity"), sep = ":") |>
                   mutate(across(c(ItemID, Quantity), as.integer)) |>
-                  select(ItemID, Quantity) |> group_by(ItemID) |> summarise(Quantité_Requise = sum(Quantity)),
+                  select(ItemID, Quantity) |> group_by(ItemID) |> summarise(`Quantité Requise` = sum(Quantity)),
                 by = "ItemID") |>
       left_join(values$purchaseOrders |>
                   filter(Statut %in% c("En attente d'approbation", "Commandée")) |>
-                  select(ItemID, Quantité) |> group_by(ItemID) |> summarise(Quantité_Commandée = sum(Quantité)),
+                  select(ItemID, Quantité) |> group_by(ItemID) |> summarise(`Quantité Commandée` = sum(Quantité)),
                 by = "ItemID") |>
       left_join(values$items, by = join_by(ItemID == ItemID)) |>
-      mutate(Date_Mise_A_Jour = as.Date(DateMiseAJour)) |>
-      select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, MinStock, QuantiteDisponible, Quantité_Requise, Quantité_Commandée, Date_Mise_A_Jour) |>
-      filter(QuantiteDisponible > 0),
+      mutate(
+        `Date Mise À Jour` = as.Date(DateMiseAJour),
+        `Quantité Disponible`=QuantiteDisponible,
+        `Quantité Minimale`=MinStock
+      ) |>
+      select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, `Quantité Minimale`, `Quantité Disponible`, `Quantité Requise`, `Quantité Commandée`, `Date Mise À Jour`) |>
+      filter(`Quantité Disponible` > 0),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Ajouter un item
@@ -457,8 +461,8 @@ server <- function(input, output, session) {
 
   # Affichage : Toutes les commandes
   output$PurchaseOrders_DT <- renderDT(
-    values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix), Date_Creation = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception)) |>
-      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee, Date_Reception),
+    values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix), `Date Creation` = as.Date(DateCommandeFCreation), `Date Reception` = as.Date(DateCommandeFReception)) |>
+      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Statut, `Date Creation`, `Date Reception`),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Affichage : Commandes en attente d'approbation
@@ -471,8 +475,8 @@ server <- function(input, output, session) {
   # Affichage : Commandes approuvées
   output$PO_Ordered_DT <- renderDT(
     values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(values$items, by = "ItemID") |>
-      mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |>
-      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Date_Commandee, Statut),
+      mutate(`Date Commandee` = as.Date(DateCommandeFCreation)) |>
+      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, `Date Commandee`, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Mettre à jour le statut
@@ -572,7 +576,7 @@ server <- function(input, output, session) {
 
   # Affichage : État du panneau
   output$Panneaux_DT <- renderDT(
-    values$panneaux |> filter(PanneauID == as.numeric(input$panneauID)) |> mutate(DateFabrication = as.Date(DateFabrication)),
+    values$panneaux |> filter(PanneauID == as.numeric(input$panneauID)) |> mutate(`Date Fabrication` = as.Date(DateFabrication)),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Mettre à jour le statut
@@ -754,30 +758,26 @@ server <- function(input, output, session) {
     }
   })
 
-  #output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
-  #output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
-
   observeEvent(input$HeaderButtonHelp, {
 
     shinyWidgets::sendSweetAlert(
       session, title = "Stock Tracking for Experimental Vehicle Enterprise (S.T.E.V.E.)",
       closeOnClickOutside = T, type = "info", html = T, width = "65%", text =
-    # showModal(modalDialog(title = "Comment utiliser cette application?", easyClose = TRUE,
-      HTML("<div class='text-left'>
-        Cette application sert de ERP/MES pour l'entreprise de fabrication de roulottes
-        <br>
-        <br>L'application comporte plusieurs onglets selon vos besoins:
-        <br>-&emsp;Le tableau de bord contient des informations sur l'usine ...
-        <br>-&emsp;L'inventaire contient l'inventaire actuel de l'usine et permet l'ajout de nouveaux items
-        <br>-&emsp;L'onglet de réception permet de tenir compte des commandes auprès des fournisseurs pour l'équipe d'achat et les employés qui font la réception
-        <br>-&emsp;L'onglet d'expédition permet de tenir compte de l'état des commandes (y compris la MAJ de ceux-ci lors de emballage et l'expédition)
-        <br>-&emsp;L'onglet de production comporte 3 sous-onglets
-        <br> &emsp;-&emsp;L'horaire de l'usine et des employés
-        <br> &emsp;-&emsp;L'horaire de production pour la journée
-        <br> &emsp;-&emsp;L'horaire de production pour la semaine
-        </div>
-      ")
-    )#)
+        HTML("<div class='text-left'>
+          Cette application sert de ERP/MES pour l'entreprise de fabrication de roulottes
+          <br>
+          <br>L'application comporte plusieurs onglets selon vos besoins:
+          <br>-&emsp;Le tableau de bord contient des informations sur l'usine ...
+          <br>-&emsp;L'inventaire contient l'inventaire actuel de l'usine et permet l'ajout de nouveaux items
+          <br>-&emsp;L'onglet de réception permet de tenir compte des commandes auprès des fournisseurs pour l'équipe d'achat et les employés qui font la réception
+          <br>-&emsp;L'onglet d'expédition permet de tenir compte de l'état des commandes (y compris la MAJ de ceux-ci lors de emballage et l'expédition)
+          <br>-&emsp;L'onglet de production comporte 3 sous-onglets
+          <br> &emsp;-&emsp;L'horaire de l'usine et des employés
+          <br> &emsp;-&emsp;L'horaire de production pour la journée
+          <br> &emsp;-&emsp;L'horaire de production pour la semaine
+          </div>
+        ")
+      )
   })
 }
 ################
