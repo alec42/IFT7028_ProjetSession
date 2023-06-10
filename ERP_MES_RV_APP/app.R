@@ -303,6 +303,8 @@ server <- function(input, output, session) {
   values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName) %>% mutate(across(c(Monday, Tuesday, Wednesday, Thursday, Friday), ~format(., format="%H:%M:%S")))
   values$SheetsPlanifHistory <- read_sheet(link_gs_erp, "PlanifHistorique")
 
+  clickedRefresh <- reactiveVal(FALSE)
+
   #### Menu : Tableau de bord ####
   output$fabricationPlot <- renderPlot({
     values$SheetsPlanifHistory %>%
@@ -659,7 +661,7 @@ server <- function(input, output, session) {
     values$customerOrders <- MES_output[[1]]
     values$purchaseOrders <- MES_output[[2]]
     values$panneaux <- MES_output[[3]]
-    
+
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
     googlesheets4::sheet_write(data = values$purchaseOrders, ss = link_gs_erp, sheet = purchaseOrdersSheetName)
     googlesheets4::sheet_write(data = values$panneaux, ss = link_gs_erp, sheet = panneauxSheetName)
@@ -739,6 +741,11 @@ server <- function(input, output, session) {
     values$SheetsPlanifHistory <- values$SheetsPlanifHistory |>
       rows_upsert(by = c("date_planned", "start_time", "CommandeID"), PlanifHistory)
     write_sheet(values$SheetsPlanifHistory, link_gs_erp, "PlanifHistorique")
+
+    if (!clickedRefresh()) {
+      clickedRefresh(TRUE)
+      shinyjs::disable("HeaderButton")
+    }
   })
   
   #output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
