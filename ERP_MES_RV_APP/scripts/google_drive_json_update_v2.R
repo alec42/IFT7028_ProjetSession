@@ -55,7 +55,7 @@ GDriveJSONUpdate <- function(
     
     # Création du data frame commandes
     json_commandes <- as.tibble(json_data[c("ClientID", "CommandeID", "FichiersFabrication", "Prix", "Statut", "DateCommandeCreation", "DateCommandeModification", "DateCommandeLivraison")])
-    json_commandes$Items <- "{4:1; 5:2}"
+    json_commandes$Items <- "{1:1; 4:1; 5:2}"
     json_commandes$InformationsCommande <- toJSON(json_data[-(1:(which(names(json_data) == "overallDims"))-1)])
     json_commandes$FichierAssemblage <- "-"
     json_commandes$FichiersFabrication <- paste(dossier_racine,dossier_3d,json_data$CommandeID, sep="")
