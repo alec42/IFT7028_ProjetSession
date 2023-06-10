@@ -37,14 +37,14 @@ dt_options <- list(dom = 't')
 #### Interface Utilisateur ####
 
 ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
-  header = shinydashboardPlus::dashboardHeader(#controlbarIcon = icon('gears'),
+  header = shinydashboardPlus::dashboardHeader(
     # title = "Stock Tracking for Experimental Vehicle Enterprise (S.T.E.V.E.)",
     title = span("S.T.E.V.E.", style = "display: flex; justify-content: center; align-items: center;"),
-    tags$li(class = "dropdown",
-      actionButton(inputId = "HeaderButton", label = "Update", icon = icon("arrows-rotate"))
+    tags$li(class = "dropdown", style= "display: flex; align-items: center; height: 100%;",
+      shinyWidgets::actionBttn(inputId = "HeaderButton", label = "Update", style="stretch", icon = icon("arrows-rotate"))
     ),
-    tags$li(class = "dropdown",
-      shiny::actionButton(inputId = "HeaderButtonHelp", label = "Help", icon = icon("circle-info"))
+    tags$li(class = "dropdown",style= "display: flex; align-items: center; height: 100%;",
+      shinyWidgets::actionBttn(inputId = "HeaderButtonHelp", label = NULL, color="primary", style="material-circle",icon = icon("question"))
     )
   ),
 
@@ -73,63 +73,90 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
 
       #### Inventaire ####
       shinydashboard::tabItem(tabName ="inventory",
-        shiny::fluidRow(
-          shinydashboardPlus::box(title="Ajouter/Retirer un nouvel item", width = 12,
-            splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                        shiny::textInput("inventory_FournisseurSelect", "Fournisseur"),
-                        shiny::numericInput("inventory_PrixSelect", "Prix", value = 0),
-                        shiny::textInput("inventory_NameSelect", "Nom d'item")
-            ),
-            splitLayout(cellWidths = c("0", "24%", "24%", "24%", "24%"), tags$head(tags$style(HTML(".shiny-split-layout > div {overflow: visible;}"))),
-                        shiny::textInput("inventory_DescriptionSelect", "Description de l'item"),
-                        shiny::textInput("inventory_TypeSelect", "Type d'item"),
-                        shiny::textInput("inventory_DimensionsSelect", "Dimensions (entrer en crochets si planche)", placeholder = "[H;W;L]"), # conditionnel??
-                        shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)
-            ),
-            shiny::actionButton("AddInventoryBtn", "Ajouter"),
-
-            shiny::textInput("itemID", "ItemID"),
-            shiny::actionButton("removeInventoryBtn", "Retirer"),
-            shiny::actionButton("refreshItemBtn", "Annuler"),
-            shiny::actionButton("saveInventoryBtn", "Enregistrer")
+          shiny::fluidRow(
+            column(width=3, shiny::textInput("inventory_FournisseurSelect", "Fournisseur")),
+            column(width=3, shiny::numericInput("inventory_PrixSelect", "Prix", value = 0)),
+            column(width=3, shiny::textInput("inventory_NameSelect", "Nom d'item")),
+            column(width=3, shiny::textInput("inventory_DescriptionSelect", "Description de l'item"))
           ),
+          shiny::fluidRow(
+            column(width=3, shiny::textInput("inventory_TypeSelect", "Type d'item"), style = "vertical-align: bottom;"),
+            column(width=3, shiny::textInput("inventory_DimensionsSelect", "Dimensions (crochets si planche)", placeholder = "[H;W;L]")), # conditionnel??
+            column(width=3, shiny::numericInput("inventory_MinStockSelect", "Stock minimum à conserver", value = 1)),
+            column(width=2, shiny::actionButton("AddInventoryBtn", "Ajouter"), style = "vertical-align: bottom;")
+          ),
+          shiny::fluidRow(
+            column(width=4,shiny::textInput("itemID", "ItemID"))
+          ),
+          shiny::actionButton("removeInventoryBtn", "Retirer"),
+          shiny::actionButton("refreshItemBtn", "Annuler"),
+          shiny::actionButton("saveInventoryBtn", "Enregistrer"),
+          br(), br(),
           shinydashboardPlus::box(title = "Liste d'items disponibles", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary", DT::dataTableOutput('Items_DT')),
           shinydashboardPlus::box(title = "Inventaire actuel", width = 12, collapsible = F, solidHeader = TRUE, status = "success", DT::dataTableOutput('Inventory_DT'))
         ),
-      ),
 
       #### Dashboard ####
       shinydashboard::tabItem(tabName ="clientOrders",
         shiny::fluidRow(
+          shinydashboardPlus::box(title = "Suivi temporelle de l'usine", width=12, status="info", solidHeader = T, collapsible = T, background = "gray",
+            shinydashboardPlus::box(
+              title="Suivi fabrication", width = 6, status = "info",
+              shinyWidgets::dropdownButton(
+                tags$h4("Réglages du graphique"), circle=T, status="info", icon = icon("gear"), size = "sm",
+                tooltip = tooltipOptions(title = "Réglages graphique"),
+                shiny::sliderInput("nb_bins", "Nombre de bins:", value = 8, min = 1, max=60),
+                dateInput("start_date_lim", "Date de début:", value = as.Date("2023-05-31")),
+                dateInput("end_date_lim", "Date de fin:", value = as.Date("2023-06-15"))
+              ),
+              shiny::plotOutput("fabricationPlot")
+            ),
+            shinydashboardPlus::box(
+              title="Suivi expédition", width = 6, status = "info",
+              shinyWidgets::dropdownButton(
+                tags$h4("Réglages du graphique"), circle=T, status="info", icon = icon("gear"), size = "sm",
+                tooltip = tooltipOptions(title = "Réglages graphique"),
+                shiny::sliderInput("nb_bins_2", "Nombre de bins:", value = 5, min = 1, max=60),
+                dateInput("start_date_lim_2", "Date de début:", value = as.Date("2023-05-31")),
+                dateInput("end_date_lim_2", "Date de fin:", value = as.Date("2023-06-15"))
+              ),
+              shiny::plotOutput("expeditionPlot")
+            )
+          ),
+          shinydashboardPlus::box(title = "Suivi commandes", width=12, solidHeader = T,  status="teal", collapsible = T,
+            shiny::fluidRow(
+              column(width=12,tags$h3("Commandes client")),
+              shinydashboardPlus::box(title = "En conception", width = 4, solidHeader = TRUE, status = "warning",
+                DT::dataTableOutput('CustomerOrders_pending_DT'),
+                footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("PendingOrdersTotal"))),
+              shinydashboardPlus::box(title = "En production", width = 4, solidHeader = TRUE, status = "warning",
+                DT::dataTableOutput('CustomerOrders_progress_DT'),
+                footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("ProgessOrdersTotal"))),
+              shinydashboardPlus::box(title = "Complétées", width = 4, solidHeader = TRUE, status = "warning",
+                DT::dataTableOutput('CustomerOrders_completed_DT'),
+                footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CompletedOrdersTotal")))
+            ),
+            shiny::fluidRow(
+              column(width=12,tags$h3("Commandes fournisseur")),
+              shinydashboardPlus::box(title = "En attente d'approbation", width = 4,solidHeader = TRUE, status = "success",
+                DT::dataTableOutput('POs_pending_DT'),
+                footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("PendingPOsTotal"))),
+              shinydashboardPlus::box(title = "Approuvées", width = 4, solidHeader = TRUE, status = "success",
+                DT::dataTableOutput('POs_sent_DT'),
+                footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("SentPOsTotal"))),
+              shinydashboardPlus::box(title = "Reçues", width = 4, solidHeader = TRUE, status = "success",
+                DT::dataTableOutput('POs_received_DT'),
+                footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("ReceivedPOsTotal")))
+            )
+          ),
           shinydashboardPlus::box(title = "Toutes les commandes", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary",
-            DT::dataTableOutput('CustomerOrders_DT'))),
+            DT::dataTableOutput('CustomerOrders_DT'))
+        ),
         shiny::fluidRow(
           shinydashboardPlus::box(title = "Revenus", width = 6, solidHeader = TRUE, background = "olive",
                                   shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("RevenueTotal"))),
           shinydashboardPlus::box(title = "Dépenses", width = 6, solidHeader = TRUE, background = "maroon",
                                   shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CostsTotal")))
-        ),
-        shiny::fluidRow(
-          shinydashboardPlus::box(title = "Commandes en conception", width = 4, solidHeader = TRUE, status = "warning",
-            DT::dataTableOutput('CustomerOrders_pending_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("PendingOrdersTotal"))),
-          shinydashboardPlus::box(title = "Commandes en production", width = 4, solidHeader = TRUE, status = "warning",
-            DT::dataTableOutput('CustomerOrders_progress_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("ProgessOrdersTotal"))),
-          shinydashboardPlus::box(title = "Commandes complétées", width = 4, solidHeader = TRUE, status = "warning",
-            DT::dataTableOutput('CustomerOrders_completed_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CompletedOrdersTotal")))
-        ),
-        shiny::fluidRow(
-          shinydashboardPlus::box(title = "Commandes en attente d'approbation", width = 4, solidHeader = TRUE, status = "success",
-            DT::dataTableOutput('POs_pending_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("PendingPOsTotal"))),
-          shinydashboardPlus::box(title = "Commandes approuvées", width = 4, solidHeader = TRUE, status = "success",
-            DT::dataTableOutput('POs_sent_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("SentPOsTotal"))),
-          shinydashboardPlus::box(title = "Commandes Reçues", width = 4, solidHeader = TRUE, status = "success",
-            DT::dataTableOutput('POs_received_DT'),
-            footer = shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("ReceivedPOsTotal")))
         )
       ),
 
@@ -274,8 +301,29 @@ server <- function(input, output, session) {
   values$pieces <- read_sheet(link_gs_erp, sheet = piecesSheetName)
   values$employees <- read_sheet(link_gs_erp, sheet = employeesDispoSheetName)
   values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName) %>% mutate(across(c(Monday, Tuesday, Wednesday, Thursday, Friday), ~format(., format="%H:%M:%S")))
+  values$SheetsPlanifHistory <- read_sheet(link_gs_erp, "PlanifHistorique")
 
   #### Menu : Tableau de bord ####
+  output$fabricationPlot <- renderPlot({
+    values$SheetsPlanifHistory %>%
+      filter(TypeOperation == "fabrication") %>%
+      mutate(day = ymd(date_planned)) |>
+      ggplot(aes(x = day)) +
+      geom_histogram(bins = input$nb_bins) +
+        scale_x_date(date_breaks = "3 day", date_minor_breaks = "1 day", date_labels = "%b %d", limits = c(input$start_date_lim, input$end_date_lim)) +
+        xlab("Jour") + ylab("Nombre panneaux fabriqués") +
+        labs(title = "Historique des commandes fabriquées quotidiennement")
+  })
+  output$expeditionPlot <- renderPlot({
+    values$SheetsPlanifHistory %>%
+      filter(TypeOperation == "expedition") %>%
+      mutate(day = ymd(date_planned)) |>
+      ggplot(aes(x = day)) +
+      geom_histogram(bins = input$nb_bins_2) +
+      scale_x_date(date_breaks = "3 day", date_minor_breaks = "1 day", date_labels = "%b %d", limits = c(input$start_date_lim_2, input$end_date_lim_2)) +
+      xlab("Jour") + ylab("Nombre commandes expédiées") +
+      labs(title = "Historique des commandes expédiées quotidiennement")
+  })
 
   # Affichage : Toutes les commandes
   output$CustomerOrders_DT <- renderDT(
@@ -678,28 +726,30 @@ server <- function(input, output, session) {
         .keep="unused"
       ) |> select(-FichierDecoupe)
 
-    SheetsPlanifHistory <- read_sheet(link_gs_erp, "PlanifHistorique")
+    values$SheetsPlanifHistory <- read_sheet(link_gs_erp, "PlanifHistorique")
 
-    SheetsPlanifHistoryUpdated <- SheetsPlanifHistory |>
+    values$SheetsPlanifHistory <- values$SheetsPlanifHistory |>
       rows_upsert(by = c("date_planned", "start_time", "CommandeID"), PlanifHistory)
-    write_sheet(SheetsPlanifHistoryUpdated, link_gs_erp, "PlanifHistorique")
+    write_sheet(values$SheetsPlanifHistory, link_gs_erp, "PlanifHistorique")
   })
   observeEvent(input$HeaderButtonHelp, {
 
     shinyWidgets::sendSweetAlert(
-      session, title = "Comment utiliser cette application?",
+      session, title = "Stock Tracking for Experimental Vehicle Enterprise (S.T.E.V.E.)",
       closeOnClickOutside = T, type = "info", html = T, width = "65%", text =
     # showModal(modalDialog(title = "Comment utiliser cette application?", easyClose = TRUE,
       HTML("<div class='text-left'>
-        L'application comporte plusieurs onglets selon vos besoins:
-        <br>-   Le tableau de bord contient des informations sur l'usine ...
-        <br>-   L'inventaire contient l'inventaire actuel de l'usine et permet l'ajout de nouveaux items
-        <br>-   L'onglet de réception permet de tenir compte des commandes auprès des fournisseurs pour l'équipe d'achat et les employés qui font la réception
-        <br>-   L'onglet d'expédition permet de tenir compte de l'état des commandes (y compris la MAJ de ceux-ci lors de emballage et l'expédition)
-        <br>-   L'onglet de production comporte 3 sous-onglets
-        <br>    -   L'horaire de l'usine et des employés
-        <br>    -   L'horaire de production pour la journée
-        <br>    -   L'horaire de production pour la semaine
+        Cette application sert de ERP/MES pour l'entreprise de fabrication de roulottes
+        <br>
+        <br>L'application comporte plusieurs onglets selon vos besoins:
+        <br>-&emsp;Le tableau de bord contient des informations sur l'usine ...
+        <br>-&emsp;L'inventaire contient l'inventaire actuel de l'usine et permet l'ajout de nouveaux items
+        <br>-&emsp;L'onglet de réception permet de tenir compte des commandes auprès des fournisseurs pour l'équipe d'achat et les employés qui font la réception
+        <br>-&emsp;L'onglet d'expédition permet de tenir compte de l'état des commandes (y compris la MAJ de ceux-ci lors de emballage et l'expédition)
+        <br>-&emsp;L'onglet de production comporte 3 sous-onglets
+        <br> &emsp;-&emsp;L'horaire de l'usine et des employés
+        <br> &emsp;-&emsp;L'horaire de production pour la journée
+        <br> &emsp;-&emsp;L'horaire de production pour la semaine
         </div>
       ")
     )#)
