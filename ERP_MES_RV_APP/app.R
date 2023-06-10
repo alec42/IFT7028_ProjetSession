@@ -3,6 +3,7 @@ library(DT)
 library(shiny)
 library(scales)
 library(rjson)
+library(shinyWidgets)
 library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
@@ -234,8 +235,7 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
               column(width=2, shiny::dateInput("dayPlanif", label = "Date", value = Sys.Date())),
               column(width=3, shiny::textInput("maxDaysPlanif", label = "Nombre maximal jours à planifier", value = 5)),
               column(width=3, shiny::textInput("bufferDaysPlanif", label = "Période tampon pour planification", value = 3)),
-              column(width=2, shiny::textInput("nbMachinesPlanif",label = "Machines Disponibles", value = 1)),
-              column(width=1, actionButton(inputId = "HeaderButton2", label = "Update", icon = icon("arrows-rotate")))
+              column(width=2, shiny::textInput("nbMachinesPlanif",label = "Machines Disponibles", value = 1))
             ),
             timevisOutput("timelineDaily"),
             tableOutput('tableDaily_1'),
@@ -642,7 +642,7 @@ server <- function(input, output, session) {
   })
 
   #### Header Buttons ####
-  observeEvent(c(input$HeaderButton, input$HeaderButton2), {
+  observeEvent(input$HeaderButton, {
     shinyWidgets::sendSweetAlert(session, closeOnClickOutside = T, html = T, title = "Mise à jour effectuée", width = "45%", text = "Les données ont été mises à jour.", type = "success")
     #### Planning ####
     # add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines

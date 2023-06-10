@@ -129,8 +129,8 @@ plan <- function(DisposUsine, DisposEmployers, plan_today, inventory, planif_dat
             Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "En production"
           }
           #Plan it if in the buffer period
-          else if(days_forward[[counter_days]] <= max_buffer_day & status != "En Prod"){ #Planned if it is planned on some other day and not already en prod
-            Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "En Planifiée"
+          else if(days_forward[[counter_days]] <= max_buffer_day & status != "En production"){ #Planned if it is planned on some other day and not already en prod
+            Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "Planifiée"
           }
         } #This finishes all panneaux for one commande
       }
@@ -244,7 +244,7 @@ MES_planif <- function(Commande, Inventaire, CommandesFournisseurs, PanneauDetai
   inventory[[1]] <- Inventaire
 
   #Get commandes eligible for planning (not Modifiable and ordered at max buffer days ago) -- order by closest DateLivraison
-  commandes_to_plan <- Commande %>% filter(Statut != "Modifiable") %>% arrange(DateCommandeLivraison)
+  commandes_to_plan <- Commande %>% filter(Statut %in% c("En production", "Planifiée", "Commandée", "En attente de matériaux")) %>% arrange(DateCommandeLivraison)
   #Track the commandes ID already planned
   planned_commandes <- c()
 
