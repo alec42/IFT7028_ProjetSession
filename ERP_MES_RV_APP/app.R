@@ -58,8 +58,8 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("truck-fast")),
       shinydashboard::menuItem("Production", icon = icon("calendar-alt"),startExpanded = T,
         shinydashboard::menuSubItem("Horaires", tabName = "schedules", icon = icon("clock")),
-        shinydashboard::menuSubItem("Production journalière", tabName = "dailyProduction", icon = icon("calendar-day")),
-        shinydashboard::menuSubItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar-week"))
+        shinydashboard::menuSubItem("Planification journalière", tabName = "dailyProduction", icon = icon("calendar-day")),
+        shinydashboard::menuSubItem("Planification hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar-week"))
       )
     )
   ),
