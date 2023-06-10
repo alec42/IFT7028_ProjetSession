@@ -58,8 +58,8 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("truck-fast")),
       shinydashboard::menuItem("Production", icon = icon("calendar-alt"),startExpanded = T,
         shinydashboard::menuSubItem("Horaires", tabName = "schedules", icon = icon("clock")),
-        shinydashboard::menuSubItem("Planification journalière", tabName = "dailyProduction", icon = icon("calendar-day")),
-        shinydashboard::menuSubItem("Planification hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar-week"))
+        shinydashboard::menuSubItem("Planification hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar-week")),
+        shinydashboard::menuSubItem("Planification journalière", tabName = "dailyProduction", icon = icon("calendar-day"))
       )
     )
   ),
@@ -152,13 +152,13 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
           ),
           shinydashboardPlus::box(title = "Toutes les commandes", width = 12, collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, status = "primary",
             DT::dataTableOutput('CustomerOrders_DT'))
-        ),
-        shiny::fluidRow(
-          shinydashboardPlus::box(title = "Revenus", width = 6, solidHeader = TRUE, background = "olive",
-                                  shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("RevenueTotal"))),
-          shinydashboardPlus::box(title = "Dépenses", width = 6, solidHeader = TRUE, background = "maroon",
-                                  shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CostsTotal")))
-        )
+        )#,
+        # shiny::fluidRow(
+        #   shinydashboardPlus::box(title = "Revenus", width = 6, solidHeader = TRUE, background = "olive",
+        #                           shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("RevenueTotal"))),
+        #   shinydashboardPlus::box(title = "Dépenses", width = 6, solidHeader = TRUE, background = "maroon",
+        #                           shinydashboardPlus::descriptionBlock(text = "Total", header = textOutput("CostsTotal")))
+        # )
       ),
 
       #### Réceptions ####
@@ -241,6 +241,7 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
       #### Planification hebdomadaire ####
       shinydashboard::tabItem(tabName ="weeklyProduction",
         shinydashboardPlus::box(title = "Planification pour la semaine", solidHeader = TRUE, width = 12,
+          tags$p("Pour exécuter l'algorithme d'optimisation de la planification, appuyer sur 'Update' en haut à droite de l'écran."),
           fluidRow(
             column(width=2, shiny::dateInput("dayPlanif", label = "Date", value = Sys.Date())),
             column(width=3, shiny::textInput("maxDaysPlanif", label = "Horizon de planification", value = 5)),
@@ -274,7 +275,7 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
             DT::dataTableOutput('CustomerOrders_ready_ship_DT'),
             footer = shinydashboardPlus::descriptionBlock(text = "commandes prêtes à expédier", header = textOutput("ReadyShipOrdersTotal"))
           ),
-          shinydashboardPlus::box(title = "Commandes expédiées", solidHeader = TRUE, status = "success", width = 12,
+          shinydashboardPlus::box(title = "Commandes en cours de livraison", solidHeader = TRUE, status = "success", width = 12,
             DT::dataTableOutput('CustomerOrders_shipped_DT'),
             footer = shinydashboardPlus::descriptionBlock(text = "commandes expédiées", header = textOutput("ShippedOrdersTotal"))
           )
@@ -516,11 +517,11 @@ server <- function(input, output, session) {
   # Affichage : Commandes expédiées
   output$CustomerOrders_shipped_DT <- renderDT(
     values$customerOrders |> left_join(values$clients, by = 'ClientID') |>
-      mutate(Client = paste(Prenom, ' ', Nom)) |> filter(Statut %in% c("Livrée", "En livraison")) |>
+      mutate(Client = paste(Prenom, ' ', Nom)) |> filter(Statut %in% c("En livraison")) |>
       select(CommandeID, Client, Adresse, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
   output$ShippedOrdersTotal <- renderText({
-    nrow(values$customerOrders |> filter(Statut %in% c("Livrée", "En livraison")))
+    nrow(values$customerOrders |> filter(Statut %in% c("En livraison")))
   })
 
   # Affichage : Commandes prêtes à expédier
@@ -788,15 +789,15 @@ server <- function(input, output, session) {
         HTML("<div class='text-left'>
           Cette application sert de ERP/MES pour l'entreprise de fabrication de roulottes
           <br>
-          <br>L'application comporte plusieurs onglets selon vos besoins:
-          <br>-&emsp;Le tableau de bord contient des informations sur l'usine ...
-          <br>-&emsp;L'inventaire contient l'inventaire actuel de l'usine et permet l'ajout de nouveaux items
-          <br>-&emsp;L'onglet de réception permet de tenir compte des commandes auprès des fournisseurs pour l'équipe d'achat et les employés qui font la réception
-          <br>-&emsp;L'onglet d'expédition permet de tenir compte de l'état des commandes (y compris la MAJ de ceux-ci lors de emballage et l'expédition)
-          <br>-&emsp;L'onglet de production comporte 3 sous-onglets
-          <br> &emsp;-&emsp;L'horaire de l'usine et des employés
-          <br> &emsp;-&emsp;L'horaire de production pour la journée
-          <br> &emsp;-&emsp;L'horaire de production pour la semaine
+          <ol>
+            <li><strong>Tableau de Bord</strong>: Suivi de la productivité de l'usine (commandes fabriquées et expédiées par jour), des commandes client et fournisseur, des revenus générés et des dépenses de fournisseurs encourues.</li>
+            <li><strong>Inventaire</strong>: Tous les items de l'inventaire sont présentés avec leur quantité courante, leur stock minimal, la quantité requise pour des projets et la quantité commandée. On peut également ajouter des nouveaux types d'objets et valider tous les types d'objets déjà commandés dans le passé.</li>
+            <li><strong>Réception (fournisseurs)</strong>: Les commandes sont séparées en deux tables, soit les commandes en attente d'approbation avant l'achat et les commandes en attente de réception suite à l'achat. Il est également possible de marquer des commandes comme ayant été reçues manuellement.</li>
+            <li><strong>Expédition (client)</strong>: Les commandes sont séparées en trois tables, soit les commandes prêtes à être emballées, les commandes prêtes à être expédiées et les commandes expédiées. Il est également possible de modifier le statut des commandes (marquer comme emballé, expédié, en livraison, etc.).</li>
+            <li><strong>Horaires</strong>: Cet onglet permet d'enregistrer les disponibilités hebdomadaires des employés ainsi que les heures d'ouverture de l'usine.</li>
+            <li><strong>Planification journalière</strong>: Ligne du temps avec les panneaux à réaliser pour la journée spécifiée (typiquement la journée même). Une table de ces panneaux présente toute l'information relatives à chaque panneau. Une table présente aussi les commandes fournisseurs à recevoir pour la journée. Il est également possible de modifier le statut d'un panneau lorsqu'il est complété.</li>
+            <li><strong>Planification hebdomadaire</strong>: Une ligne du temps permet de présenter la planification, pour l'horizon de planification spécifié, les panneaux à fabriquer, les commandes (clientes) à emballer et les commandes (fournisseurs) à recevoir. Une table permet de lister les commandes fournisseurs de la semaine et leur état. Quatre boutons interactif permet de générer la date, l'horizon, la période tampon (gelée) et le nombre de machines pour la planification.</li>
+          </ol>
           </div>
         ")
       )
