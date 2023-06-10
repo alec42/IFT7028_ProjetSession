@@ -31,7 +31,7 @@ GDriveJSONUpdate <- function(
     json_data[c("FichierFabrication")] <- paste(dossier_racine,dossier_importee,JSON_file, sep="")
     json_data[c("InformationsCommande")] <- rjson::toJSON(json_data[c("overallDims", "leftSideOptions", "rightSideOptions")])
     json_customer <- json_data[c("ClientID", "Nom", "Prenom", "Adresse", "Courriel", "Mot_de_passe")]
-    json_data[c("FichiersFabrication","Nom", "Prenom", "Adresse", "Courriel", "Mot_de_passe", "overallDims", "leftSideOptions", "rightSideOptions")] <- NULL
+    json_data[c("Nom", "Prenom", "Adresse", "Courriel", "Mot_de_passe", "overallDims", "leftSideOptions", "rightSideOptions")] <- NULL
     # Vérifie si la commande existe déjà dans la BD
     if (any(customerOrders$CommandeID == json_data$CommandeID)) {
       # if (json_data$Statut %in% c("Commandée", "Complétée", "Modifiable")) {
@@ -90,12 +90,12 @@ GDriveUpdatePiecesDetail <- function(
   dossier_racine = "Industrie_VR_IFT7028/Base_de_donnees_ERP/",dossier_importee = "commandes_json/importée/",
   commandeID
 ) {
-  JSONpath <- paste(dossier_racine, dossier_importee, commandeID, sep="")
+  # JSONpath <- paste(dossier_racine, dossier_importee, commandeID, sep="")
   startingPanneauID <- max(piecesDetail$PanneauID) + 1
   startingPieceID <- max(piecesDetail$PieceID) + 1
 
   ####### fonction OPTIMISATION Equipe 3 #########
-  # optimisation(JSONpath, startingPanneauID, startingPieceID)
+  # GetPieceDetailDataFrame(paste0(dossier_racine, commandeID), startingPanneauID, startingPieceID)
   # return un dataframe piecesDetail complété pour LA commande et List[(id_panneau, FichierDecoupe)]
 
   # le dataframe retourné par la fonction d'optimisation

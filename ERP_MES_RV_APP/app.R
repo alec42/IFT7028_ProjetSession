@@ -597,11 +597,11 @@ server <- function(input, output, session) {
   observeEvent(input$cancelPanneauBtn, {
     values$panneaux <- read_sheet(link_gs_erp, sheet = panneauxSheetName)
     values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
-    
+
     values$panelDF <- values$panneau_df |>
       mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")|>
       mutate(across(where(is.numeric), as.integer))
-    
+
   })
 
   # Button : Enregistrer
