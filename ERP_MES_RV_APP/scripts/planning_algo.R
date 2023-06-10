@@ -115,7 +115,7 @@ plan <- function(DisposUsine, DisposEmployers, plan_today, inventory, planif_dat
           inventory[[day_idx]] <- new_inv
 
           #Update date of fabrication
-          PanneauDetail <- PanneauDetail %>% mutate(
+          PanneauDetail <- PanneauDetail |> mutate(
             DatePrevue = ifelse(
               CommandeID == r[["CommandeID"]] &&
                 PanneauID == pull(panneaux_todo[j,], PanneauID) &&

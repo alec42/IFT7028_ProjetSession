@@ -10,7 +10,6 @@ library(shinydashboardPlus)
 library(timevis)
 
 Sys.setlocale("LC_TIME", "en_US")
-
 # day_planif <- Sys.Date()
 # day_planif <- "2023-05-31"
 
@@ -416,7 +415,8 @@ server <- function(input, output, session) {
                 by = "ItemID") |>
       left_join(values$items, by = join_by(ItemID == ItemID)) |>
       mutate(Date_Mise_A_Jour = as.Date(DateMiseAJour)) |>
-      select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, MinStock, QuantiteDisponible, Quantité_Requise, Quantité_Commandée, Date_Mise_A_Jour),
+      select(ItemID, Fournisseur, Prix, Nom, Description, Type, Dimensions, MinStock, QuantiteDisponible, Quantité_Requise, Quantité_Commandée, Date_Mise_A_Jour) |>
+      filter(QuantiteDisponible > 0),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Ajouter un item
@@ -455,7 +455,7 @@ server <- function(input, output, session) {
 
   # Affichage : Toutes les commandes
   output$PurchaseOrders_DT <- renderDT(
-    values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix), Date_Commandee = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception)) |>
+    values$purchaseOrders |> left_join(values$items, by = "ItemID") |> mutate(Prix = scales::dollar(Prix), Date_Creation = as.Date(DateCommandeFCreation), Date_Reception = as.Date(DateCommandeFReception)) |>
       select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Statut, Date_Commandee, Date_Reception),
     options = dt_options, rownames = FALSE, selection = "none")
 
@@ -470,7 +470,7 @@ server <- function(input, output, session) {
   output$PO_Ordered_DT <- renderDT(
     values$purchaseOrders |> filter(Statut == "Commandée") |> left_join(values$items, by = "ItemID") |>
       mutate(Date_Commandee = as.Date(DateCommandeFCreation)) |>
-      select(CommandeFournisseurID, Nom, Quantité, Date_Commandee, Statut),
+      select(CommandeFournisseurID, Fournisseur, Nom, Prix, Quantité, Date_Commandee, Statut),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Mettre à jour le statut

@@ -59,7 +59,7 @@ GDriveJSONUpdate <- function(
             as_tibble(json_customer) %>%
             mutate(
             across(c("ClientID"), as.double),
-            across(c("Mot_de_passe"), as.list), 
+            across(c("Mot_de_passe"), as.list),
             Commandes = NULL))
         }
 
@@ -128,4 +128,4 @@ GDriveUpdatePiecesDetail <- function(
 }
 
 #GDriveJSONUpdate()
-GDriveUpdatePiecesDetail(commandeID=1)
+# GDriveUpdatePiecesDetail(commandeID=1)
