@@ -599,7 +599,8 @@ server <- function(input, output, session) {
     values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
     
     values$panelDF <- values$panneau_df |>
-      mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")
+      mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")|>
+      mutate(across(where(is.numeric), as.integer))
     
   })
 
@@ -698,7 +699,8 @@ server <- function(input, output, session) {
 
     ## Timeline
     values$panelDF <- values$panneau_df |>
-      mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")
+      mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused") |>
+      mutate(across(where(is.numeric), as.integer))
     values$manufacturerDF <- fournisseurs_today |>
       mutate(DateCommande=format(as.Date(DateCommandeFCreation), "%Y-%m-%d"), DateReception=format(DateCommandeFReception, "%Y-%m-%d"), .keep = "unused")
     values$todayDF <- data_today_to_timevis
