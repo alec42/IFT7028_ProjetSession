@@ -10,19 +10,17 @@ library(timevis)
 
 
 # day_planif <- Sys.Date()
-day_planif <- "2023-05-31"
+# day_planif <- "2023-05-31"
 
 source("scripts/googlesheets_access.R") # get link to gs
 source("scripts/planning_algo.R", local = TRUE)
-source("scripts/google_drive_json_update.R")
+# source("scripts/google_drive_json_update.R")
 
 # GDriveJSONUpdate(
 #   dossier_racine = "Industrie_VR_IFT7028/", dossier_commandee = "commandes_json/commandée/", dossier_importee = "commandes_json/importée/",
 #   customerOrders = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Commandes'))
 
-###################
-## Google Sheets ##
-###################
+#### Google Sheets ####
 
 customerOrdersSheetName <- "Commandes"
 purchaseOrdersSheetName <- "CommandesFournisseurs"
@@ -36,9 +34,7 @@ factoryHoursSheetName <- "DisposUsine"
 dt_options <- list(dom = 't')
 
 
-###########################
-## Interface Utilisateur ##
-###########################
+#### Interface Utilisateur ####
 
 ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
   header = shinydashboardPlus::dashboardHeader(#controlbarIcon = icon('gears'),
@@ -52,26 +48,22 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
     )
   ),
 
-  ##########
-  ## Menu ##
-  ##########
+  #### Menu ####
   sidebar = shinydashboard::dashboardSidebar(
     shinydashboard::sidebarMenu(id="sidebarMenu",
-      shinydashboard::menuItem("Tableau de bord", tabName = "clientOrders", icon = icon("dashboard")),
+      shinydashboard::menuItem("Tableau de bord", tabName = "clientOrders", icon = icon("dashboard"), selected = T),
       shinydashboard::menuItem("Inventaire", tabName = "inventory", icon = icon("list-alt")),
       shinydashboard::menuItem("Réception (fournisseurs)", tabName = "purchaseOrders", icon = icon("envelope")),
       shinydashboard::menuItem("Expédition (client)", tabName = "expedition", icon = icon("truck-fast")),
       shinydashboard::menuItem("Production", icon = icon("calendar-alt"),startExpanded = T,
         shinydashboard::menuSubItem("Horaires", tabName = "schedules", icon = icon("clock")),
-        shinydashboard::menuSubItem("Production journalière", tabName = "dailyProduction", icon = icon("calendar-day"), selected = T),
+        shinydashboard::menuSubItem("Production journalière", tabName = "dailyProduction", icon = icon("calendar-day")),
         shinydashboard::menuSubItem("Production hebdomadaire", tabName = "weeklyProduction", icon = icon("calendar-week"))
       )
     )
   ),
 
-  ##########
-  ## Body ##
-  ##########
+  #### Body ####
   body = shinydashboard::dashboardBody(
     shinyjs::useShinyjs(),
     shinyWidgets::useSweetAlert(),
@@ -190,7 +182,9 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
             )
           ),
           shiny::actionButton("refreshEmployeeDispo", "Annuler"),
-          shiny::actionButton("saveEmployeeDispo", "Sauvegarder")
+          shiny::actionButton("saveEmployeeDispo", "Sauvegarder"),
+          br(),
+          DTOutput('EmployeeDispoTable')
         )
       ),
 
@@ -262,20 +256,14 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
     )
   )
 )
-############
-## END UI ##
-############
+#### END UI ####
 
 
-#############
-## Server ##
-#############
+#### Server ####
 
 server <- function(input, output, session) {
 
-  #######################
-  ## Données réactives ##
-  #######################
+  #### Données réactives ####
   values <- reactiveValues()
   values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
   values$purchaseOrders <- read_sheet(link_gs_erp, sheet = purchaseOrdersSheetName)
@@ -287,9 +275,7 @@ server <- function(input, output, session) {
   values$employees <- read_sheet(link_gs_erp, sheet = employeesDispoSheetName)
   values$factory <- read_sheet(link_gs_erp, sheet = factoryHoursSheetName) %>% mutate(across(c(Monday, Tuesday, Wednesday, Thursday, Friday), ~format(., format="%H:%M:%S")))
 
-  ############################
-  ## Menu : Tableau de bord ##
-  ############################
+  #### Menu : Tableau de bord ####
 
   # Affichage : Toutes les commandes
   output$CustomerOrders_DT <- renderDT(
@@ -358,10 +344,7 @@ server <- function(input, output, session) {
   })
 
 
-  #######################
-  ## Menu : Inventaire ##
-  #######################
-
+  #### Menu : Inventaire ####
   # Affichage : Item
   output$Items_DT <- renderDT(
     values$items,
@@ -419,9 +402,7 @@ server <- function(input, output, session) {
   })
 
 
-  ######################
-  ## Menu : Réception ##
-  ######################
+  #### Menu : Réception ####
 
   # Affichage : Toutes les commandes
   output$PurchaseOrders_DT <- renderDT(
@@ -475,9 +456,7 @@ server <- function(input, output, session) {
   })
 
 
-  #######################
-  ## Menu : Expédition ##
-  #######################
+  #### Menu : Expédition ####
 
   # Affichage : Commandes expédiées
   output$CustomerOrders_shipped_DT <- renderDT(
@@ -538,20 +517,18 @@ server <- function(input, output, session) {
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
   })
 
-  ###################################
-  ## Menu : Production journalière ##
-  ###################################
+  #### Menu : Production journalière ####
 
   # Affichage : État du panneau
   output$Panneaux_DT <- renderDT(
-    values$panneaux |> filter(PanneauID == input$panneauID),
+    values$panneaux |> filter(PanneauID == as.numeric(input$panneauID)) |> mutate(DateFabrication = as.Date(DateFabrication)),
     options = dt_options, rownames = FALSE, selection = "none")
 
   # Button : Mettre à jour le statut
   observeEvent(input$updatePanneauBtn, {
     values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$Statut <- input$panneauStatus
     if (input$panneauStatus == "DONE"){
-      values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$DateFabrication <- input$dayPlanif
+      values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$DateFabrication <- as.POSIXct(input$dayPlanif)
     }
 
     if (prod(sapply(
@@ -574,10 +551,7 @@ server <- function(input, output, session) {
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
   })
 
-  ####################################
-  ## Menu : Production hebdomadaire ##
-  ####################################
-
+  #### Menu : Horaire ####
   # Button : Mettre à jour les heures d'usine
   output$factoryHoursTable <- renderTable(values$factory)
   observeEvent(input$updateFactoryHours, {
@@ -593,6 +567,16 @@ server <- function(input, output, session) {
     googlesheets4::sheet_write(data = values$factory, ss = link_gs_erp, sheet = factoryHoursSheetName)
   })
   # Button : Mettre à jour les dispos d'employés
+  output$EmployeeDispoTable <- renderDataTable(
+    datatable(values$employees |>
+      mutate(
+        Monday = ifelse(Monday == 1, "&#10004;", ""),
+        Tuesday = ifelse(Tuesday == 1, "&#10004;", ""),
+        Wednesday = ifelse(Wednesday == 1, "&#10004;", ""),
+        Thursday = ifelse(Thursday == 1, "&#10004;", ""),
+        Friday = ifelse(Friday == 1, "&#10004;", ""),
+      ), escape=FALSE, options = dt_options, rownames = FALSE)
+  )
   observeEvent(c(input$refreshEmployeeDispo, input$saveEmployeeDispo, input$EmployeeDispoID), {
     shinyWidgets::updateCheckboxGroupButtons(
       session, inputId = "employeeSchedule",
@@ -611,16 +595,13 @@ server <- function(input, output, session) {
 
   #### Header Buttons ####
   observeEvent(c(input$HeaderButton, input$HeaderButton2), {
-
     shinyWidgets::sendSweetAlert(session, closeOnClickOutside = T, html = T, title = "Mise à jour effectuée", width = "45%", text = "Les données ont été mises à jour.", type = "success")
-    ##################
     #### Planning ####
-    ##################
     # add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines
     MES_output <- MES_planif(
       values$customerOrders, values$inventory, values$purchaseOrders, values$panneaux, values$items, values$factory, values$employees,
       input$dayPlanif, max_range = as.numeric(input$maxDaysPlanif), buffer = as.numeric(input$bufferDaysPlanif), nb_machines = as.numeric(input$nbMachinesPlanif))
-      # input$dayPlanif, max_range = 5, buffer = 3, nb_machines = 1)
+      # Sys.Date(), max_range = 5, buffer = 3, nb_machines = 1)
 
     ## Update the real data tables in BD
     values$customerOrders <- MES_output[[1]]
@@ -670,17 +651,38 @@ server <- function(input, output, session) {
 
     # Affichage par défaut
     output$timelineDaily <- renderTimevis({
-      timevis(data=values$todayDF |> filter(!(hour(time) >= 0 & hour(time) < 8)), groups=values$todayGroupsDF)
-      #options=list(
-      #  hiddenDates = htmlwidgets::JS("{start: '2023-06-03 00:00:00', end: '2023-06-05 00:00:00', [repeat:'weekly']}")))
+      timevis(data=values$todayDF, groups=values$todayGroupsDF)
     })
     output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
     output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
     output$timelineWeekly <- renderTimevis({
       timevis(data=values$weekDF, groups=values$weekGroupsDF)
     })
-    #TODO : Save planif data to some BD
-    # sheet_append  somehwere
+
+    PlanifHistory <- data |>
+      mutate(
+        date_planned = str_split_i(start, " ", 1),
+        start_time = str_split_i(start, " ", 2),
+        end_time = str_split_i(end, " ", 2),
+        TypeOperation = case_when(
+          str_detect(group, pattern="emballer") ~ "expedition",
+          str_detect(group, pattern="Receptions") ~ "reception",
+          .default = "fabrication"
+        ),
+        TypeClient = case_when(str_detect(group, pattern="fournisseur") ~ "fournisseur", .default = "client"),
+        CommandeID = case_when(
+          str_detect(group, pattern="Commande") ~ str_split_i(group, " ", 2),
+          str_detect(group, pattern="Receptions") ~ str_split_i(content, " ", 5),
+          .default=str_split_i(content, " ", 3)
+        ),
+        .keep="unused"
+      ) |> select(-FichierDecoupe)
+
+    SheetsPlanifHistory <- read_sheet(link_gs_erp, "PlanifHistorique")
+
+    SheetsPlanifHistoryUpdated <- SheetsPlanifHistory |>
+      rows_upsert(by = c("date_planned", "start_time", "CommandeID"), PlanifHistory)
+    write_sheet(SheetsPlanifHistoryUpdated, link_gs_erp, "PlanifHistorique")
   })
   observeEvent(input$HeaderButtonHelp, {
 
