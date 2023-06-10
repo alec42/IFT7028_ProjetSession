@@ -737,6 +737,10 @@ server <- function(input, output, session) {
       rows_upsert(by = c("date_planned", "start_time", "CommandeID"), PlanifHistory)
     write_sheet(values$SheetsPlanifHistory, link_gs_erp, "PlanifHistorique")
   })
+  
+  output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
+  output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
+  
   observeEvent(input$HeaderButtonHelp, {
 
     shinyWidgets::sendSweetAlert(
