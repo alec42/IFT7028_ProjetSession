@@ -36,103 +36,103 @@ plan <- function(DisposUsine, DisposEmployers, plan_today, inventory, planif_dat
         filter(CommandeID == r[["CommandeID"]], Statut == "TODO")
 
       if (nrow(panneaux_todo) > 0) {
-      for (j in seq(nrow(panneaux_todo))) {
-        #Get start and end time for day we are at
-        min_max_times <- DisposUsine %>% select(weekdays(as.Date(days_forward[counter_days])))
-
-        #Get fabrication time for this panneau
-        fab_time <- Items |>
-          filter(ItemID == pull(panneaux_todo[j,], PanneauType)) |>
-          pull(TempsFabrication)
-
-        #Check that there is not already something planned on this day at that time when calling this again
-        start_time <- paste(days_forward[counter_days], list_of_times[counter_times], sep = " ")
-
-        current_work <- planif_data %>%
-          filter(start == start_time, type == "range")
-
-        #Check if employee available today
-        day_of_week <- weekdays(as.Date(days_forward[counter_days]))
-
-        nb_available <- DisposEmployers %>% pull(day_of_week)
-        if (sum(nb_available) >= 1){
-          is_available <- TRUE
-        } else {
-          is_available <- FALSE
-        }
-
-        #Check if we need to change day
-        while(
-          nrow(current_work) == max_per_time |
-          !is_available |
-          list_of_times[counter_times] >= min_max_times[2, ]
-        ) {
-          #Go to next spot
-          counter_times = counter_times + fab_time
-
-          #Restart the day
-          if(list_of_times[counter_times] >= min_max_times[2, ]) {
-            counter_times <- 1
-            counter_days <- counter_days + 1
-            day_idx <- day_idx + 1
-            inventory[day_idx] <- inventory[day_idx-1]
-          }
-
-          #Do not go further than the horizon of days we want
-          if (counter_days > length(days_forward)){
-            return(list(planif_data, inventory,Commande, PanneauDetail))
-          }
-
-          #Update start time and current work
-          start_time = paste(days_forward[counter_days],list_of_times[counter_times],sep= " ")
-
-          #updaye working or not
-          current_work <- planif_data %>% filter(start == start_time, type == "range") #this also takes the commandes fournisseurs
-
-          #Ipdate people available or not
-          day_of_week = weekdays(as.Date(days_forward[counter_days]))
-          nb_available <- DisposEmployers %>% pull(day_of_week)
-
-          if (sum(nb_available) >= 1){
-            is_available = TRUE
-          }
-          else{
-            is_available = FALSE
-          }
+        for (j in seq(nrow(panneaux_todo))) {
+          #Get start and end time for day we are at
           min_max_times <- DisposUsine %>% select(weekdays(as.Date(days_forward[counter_days])))
-        }#Done getting the next available spot
 
-        #Plan  the panneau -- CommandeID-PanneauType-PanneauID
-        planif_data <- planif_data |>
-          add_row(
-            content=paste0(pull(panneaux_todo[j,], PanneauID)),
-            start=start_time, end=paste(days_forward[counter_days], list_of_times[counter_times+fab_time]),
-            FichierDecoupe=paste0(pull(panneaux_todo[j,], FichierDecoupe)), group=paste("Commande", r[["CommandeID"]]), type="range"
-          )
+          #Get fabrication time for this panneau
+          fab_time <- Items |>
+            filter(ItemID == pull(panneaux_todo[j,], PanneauType)) |>
+            pull(TempsFabrication)
 
-        new_inv <- update_inventory_from_plan(inventory[[day_idx]], pull(panneaux_todo[j,], PanneauType))
+          #Check that there is not already something planned on this day at that time when calling this again
+          start_time <- paste(days_forward[counter_days], list_of_times[counter_times], sep = " ")
 
-        inventory[[day_idx]] <- new_inv
+          current_work <- planif_data %>%
+            filter(start == start_time, type == "range")
 
-        #Update date of fabrication
-        PanneauDetail <- PanneauDetail %>% mutate(
-          DatePrevue = ifelse(
-            CommandeID == r[["CommandeID"]] &&
-              PanneauID == pull(panneaux_todo[j,], PanneauID) &&
-              PanneauType == pull(panneaux_todo[j,], PanneauType),
-            paste(days_forward[counter_days]),
-            DatePrevue))
+          #Check if employee available today
+          day_of_week <- weekdays(as.Date(days_forward[counter_days]))
 
-        #Update status to En prod if this commande is done on prod day
-        status <- pull(Commande[Commande["CommandeID"] == r[["CommandeID"]],], Statut)
-        if (days_forward[[counter_days]] == prod_day){
-          Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "En production"
-        }
-        #Plan it if in the buffer period
-        else if(days_forward[[counter_days]] <= max_buffer_day & status != "En Prod"){ #Planned if it is planned on some other day and not already en prod
-          Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "En Planifiée"
-        }
-      } #This finishes all panneaux for one commande
+          nb_available <- DisposEmployers %>% pull(day_of_week)
+          if (sum(nb_available) >= 1){
+            is_available <- TRUE
+          } else {
+            is_available <- FALSE
+          }
+
+          #Check if we need to change day
+          while(
+            nrow(current_work) == max_per_time |
+            !is_available |
+            list_of_times[counter_times] >= min_max_times[2, ]
+          ) {
+            #Go to next spot
+            counter_times = counter_times + fab_time
+
+            #Restart the day
+            if(list_of_times[counter_times] >= min_max_times[2, ]) {
+              counter_times <- 1
+              counter_days <- counter_days + 1
+              day_idx <- day_idx + 1
+              inventory[day_idx] <- inventory[day_idx-1]
+            }
+
+            #Do not go further than the horizon of days we want
+            if (counter_days > length(days_forward)){
+              return(list(planif_data, inventory,Commande, PanneauDetail))
+            }
+
+            #Update start time and current work
+            start_time = paste(days_forward[counter_days],list_of_times[counter_times],sep= " ")
+
+            #updaye working or not
+            current_work <- planif_data %>% filter(start == start_time, type == "range") #this also takes the commandes fournisseurs
+
+            #Ipdate people available or not
+            day_of_week = weekdays(as.Date(days_forward[counter_days]))
+            nb_available <- DisposEmployers %>% pull(day_of_week)
+
+            if (sum(nb_available) >= 1){
+              is_available = TRUE
+            }
+            else{
+              is_available = FALSE
+            }
+            min_max_times <- DisposUsine %>% select(weekdays(as.Date(days_forward[counter_days])))
+          }#Done getting the next available spot
+
+          #Plan  the panneau -- CommandeID-PanneauType-PanneauID
+          planif_data <- planif_data |>
+            add_row(
+              content=paste0(pull(panneaux_todo[j,], PanneauID)),
+              start=start_time, end=paste(days_forward[counter_days], list_of_times[counter_times+fab_time]),
+              FichierDecoupe=paste0(pull(panneaux_todo[j,], FichierDecoupe)), group=paste("Commande", r[["CommandeID"]]), type="range"
+            )
+
+          new_inv <- update_inventory_from_plan(inventory[[day_idx]], pull(panneaux_todo[j,], PanneauType))
+
+          inventory[[day_idx]] <- new_inv
+
+          #Update date of fabrication
+          PanneauDetail <- PanneauDetail %>% mutate(
+            DatePrevue = ifelse(
+              CommandeID == r[["CommandeID"]] &&
+                PanneauID == pull(panneaux_todo[j,], PanneauID) &&
+                PanneauType == pull(panneaux_todo[j,], PanneauType),
+              paste(days_forward[counter_days]),
+              DatePrevue))
+
+          #Update status to En prod if this commande is done on prod day
+          status <- pull(Commande[Commande["CommandeID"] == r[["CommandeID"]],], Statut)
+          if (days_forward[[counter_days]] == prod_day){
+            Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "En production"
+          }
+          #Plan it if in the buffer period
+          else if(days_forward[[counter_days]] <= max_buffer_day & status != "En Prod"){ #Planned if it is planned on some other day and not already en prod
+            Commande[Commande["CommandeID"] == r[['CommandeID']],"Statut"] = "En Planifiée"
+          }
+        } #This finishes all panneaux for one commande
       }
       #Update the colle and vernis (and other) for each commande
       other_materials <- c(4,5,6,7)
