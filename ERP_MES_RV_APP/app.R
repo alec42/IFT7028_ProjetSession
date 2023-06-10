@@ -588,9 +588,9 @@ server <- function(input, output, session) {
         ) == 1) {
       values$customerOrders[values$customerOrders$CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID, ]$Statut <- "Complétée"
     }
-    
+
     values$panelDF[values$panelDF$PanneauID == input$panneauID, ]$Statut <- input$panneauStatus
-    
+
   })
 
   # Button : Annuler
@@ -692,7 +692,7 @@ server <- function(input, output, session) {
     fournisseurs_today <- values$purchaseOrders %>% filter(as.Date(DateCommandeFReception) == input$dayPlanif)
 
     ## Week Data
-    data_to_timevis <- data %>% mutate(content = ifelse(type == "range",paste("PanneauID", content, sep=" "),content))
+    data_to_timevis <- data %>% mutate(content = ifelse(type == "range", paste("PanneauID", content, sep=" "),content))
     data_groups <- MES_output[[5]]
     #Get fournisseurs in planif (table output)
     fournisseurs_planif <- values$purchaseOrders %>% filter(as.Date(DateCommandeFReception) >= input$dayPlanif)
@@ -753,10 +753,10 @@ server <- function(input, output, session) {
       shinyjs::disable("HeaderButton")
     }
   })
-  
+
   #output$tableDaily_1 <- renderTable(values$panelDF)  #Current day panneaux prod
   #output$tableDaily_2 <- renderTable(values$manufacturerDF) #Current day fournisseurs recus
-  
+
   observeEvent(input$HeaderButtonHelp, {
 
     shinyWidgets::sendSweetAlert(
