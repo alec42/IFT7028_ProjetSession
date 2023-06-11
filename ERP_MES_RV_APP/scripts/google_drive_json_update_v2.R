@@ -61,12 +61,10 @@ GDriveJSONUpdate <- function(
     json_commandes$FichiersFabrication <- paste(dossier_racine,dossier_3d,json_data$CommandeID, sep="")
     print(json_commandes)
     json_commandes <- json_commandes |> mutate(across(starts_with("Date"), as.Date), across(c("Prix"), as.double))
-    #json_commandes <- json_commandes |> mutate(across(starts_with("Date"), as.POSIXct), across(c("Prix"), as.double))
     
     # Ajustement de customerOrders
     print(customerOrders)
     customerOrders <- customerOrders |> mutate(across(starts_with("Date"), as.Date))
-    #customerOrders <- customerOrders |> mutate(across(starts_with("Date"), as.POSIXct))
     
     # Si le client n'existe pas, ajoute la ligne
     if (json_client$ClientID %notin% customers$ClientID) {
@@ -103,49 +101,49 @@ GDriveJSONUpdate <- function(
 }
 
 
-# GDriveUpdatePiecesDetail <- function(
-#   piecesDetail = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'PiecesDetail'),
-#   panneauxDetail = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'PanneauxDetail'),
-#   items = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Items'),
-#   dossier_racine = "Industrie_VR_IFT7028/Base_de_donnees_ERP/",dossier_importee = "commandes_json/importée/",
-#   commandeID
-# ) {
-#   # JSONpath <- paste(dossier_racine, dossier_importee, commandeID, sep="")
-#   startingPanneauID <- max(piecesDetail$PanneauID) + 1
-#   startingPieceID <- max(piecesDetail$PieceID) + 1
-# 
-#   ####### fonction OPTIMISATION Equipe 3 #########
-#   # GetPieceDetailDataFrame(paste0(dossier_racine, commandeID), startingPanneauID, startingPieceID)
-#   # return un dataframe piecesDetail complété pour LA commande et List[(id_panneau, FichierDecoupe)]
-# 
-#   # le dataframe retourné par la fonction d'optimisation
-#   piecesCommandeReturned <- piecesDetail
-#   # liste des chemins de fichier de decoupe retournée par la fonction
-#   pathDecoupe <- data.frame(PanneauID = c(22, 21, 20), FichierDecoupe = c("-", "-", "-"))
-# 
-#   nb_panneau <- n_distinct(piecesCommandeReturned$PanneauID)
-# 
-#   # get random panneau type
-#   type_panneau <- length(items$ItemID[items$Type == "Panneau"])
-# 
-#   newPanneauxDetail <- piecesCommandeReturned %>% mutate(PieceID= NULL, Fichier3D = NULL, PanneauType=NULL)
-# 
-#   newPanneauxDetail <- distinct(newPanneauxDetail, PanneauID, .keep_all = TRUE)
-# 
-#   newPanneauxDetail <- newPanneauxDetail %>% mutate(PanneauType = sample(1:type_panneau, nb_panneau, replace = TRUE), Statut= "TODO", DatePrevue = "", DateFabrication="")
-# 
-#   newPanneauxDetail <- left_join(newPanneauxDetail, pathDecoupe)
-# 
-#   panneauxDetail <- panneauxDetail |> rows_append(
-#         as_tibble(newPanneauxDetail) %>% mutate(across(starts_with("Date"), lubridate::ymd_hms)))
-# 
-#   piecesCommandeReturned$PanneauType[piecesCommandeReturned$PanneauID == newPanneauxDetail$PanneauID] <- 60
-# 
-#   print(piecesCommandeReturned)
-# 
-#   piecesDetail <- piecesDetail |> rows_append(
-#         as_tibble(piecesCommandeReturned))
-# }
+GDriveUpdatePiecesDetail <- function(
+  piecesDetail = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'PiecesDetail'),
+  panneauxDetail = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'PanneauxDetail'),
+  items = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Items'),
+  dossier_racine = "Industrie_VR_IFT7028/Base_de_donnees_ERP/",dossier_importee = "commandes_json/importée/",
+  commandeID
+) {
+  # JSONpath <- paste(dossier_racine, dossier_importee, commandeID, sep="")
+  startingPanneauID <- max(piecesDetail$PanneauID) + 1
+  startingPieceID <- max(piecesDetail$PieceID) + 1
+
+  ####### fonction OPTIMISATION Equipe 3 #########
+  # GetPieceDetailDataFrame(paste0(dossier_racine, commandeID), startingPanneauID, startingPieceID)
+  # return un dataframe piecesDetail complété pour LA commande et List[(id_panneau, FichierDecoupe)]
+
+  # le dataframe retourné par la fonction d'optimisation
+  piecesCommandeReturned <- piecesDetail
+  # liste des chemins de fichier de decoupe retournée par la fonction
+  pathDecoupe <- data.frame(PanneauID = c(22, 21, 20), FichierDecoupe = c("-", "-", "-"))
+
+  nb_panneau <- n_distinct(piecesCommandeReturned$PanneauID)
+
+  # get random panneau type
+  type_panneau <- length(items$ItemID[items$Type == "Panneau"])
+
+  newPanneauxDetail <- piecesCommandeReturned %>% mutate(PieceID= NULL, Fichier3D = NULL, PanneauType=NULL)
+
+  newPanneauxDetail <- distinct(newPanneauxDetail, PanneauID, .keep_all = TRUE)
+
+  newPanneauxDetail <- newPanneauxDetail %>% mutate(PanneauType = sample(1:type_panneau, nb_panneau, replace = TRUE), Statut= "TODO", DatePrevue = "", DateFabrication="")
+
+  newPanneauxDetail <- left_join(newPanneauxDetail, pathDecoupe)
+
+  panneauxDetail <- panneauxDetail |> rows_append(
+        as_tibble(newPanneauxDetail) %>% mutate(across(starts_with("Date"), lubridate::ymd_hms)))
+
+  piecesCommandeReturned$PanneauType[piecesCommandeReturned$PanneauID == newPanneauxDetail$PanneauID] <- 60
+
+  print(piecesCommandeReturned)
+
+  piecesDetail <- piecesDetail |> rows_append(
+        as_tibble(piecesCommandeReturned))
+}
 
 #GDriveJSONUpdate()
 # GDriveUpdatePiecesDetail(commandeID=1)
