@@ -3,19 +3,25 @@ library(rjson)
 library(dplyr)
 library(googlesheets4)
 
-#' @example GDriveJSONUpdate(
-#'  dossier_racine = "Industrie_VR_IFT7028/", dossier_commandee = "commandes_json/commandée/", dossier_importee = "commandes_json/importée/",
-#'  customerOrders = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Commandes'))
-#'  
+generateRandomPiece <- function(CommandeID, PanneauStart, PieceStart){
+  tibble(CommandeID = rep(CommandeID, 4),
+         PanneauID = c(1, 2, 3, 4) + PanneauStart,
+         PieceID = c(1, 2, 3, 4) + PieceStart,
+         PanneauType = round(runif(4, 1, 3)),
+         Fichier3D = c("-", "-", "-", "-"))
+}
+
 GDriveJSONUpdate <- function(
     dossier_racine = "Industrie_VR_IFT7028/", 
     dossier_commandee = "commandes_json/commandée/",
     dossier_importee = "commandes_json/importée/",
     dossier_3d = "commandes_3d/",
     customerOrders = read_sheet(link_gs_erp, sheet = 'Commandes'),
-    customers = read_sheet(link_gs_erp, sheet = 'Clients')){
+    customers = read_sheet(link_gs_erp, sheet = 'Clients'),
+    pieces = read_sheet(link_gs_erp, sheet = 'PiecesDetail'),
+    panneaux = read_sheet(link_gs_erp, sheet = 'PanneauxDetail')){
   
-  # Fonction utilitaire, opposée de %in%
+  # Fonction utilitaire, inverse de %in%
   `%notin%` <- Negate(`%in%`)
   
   # Liste des fichiers dans le dossier commandée
@@ -24,12 +30,12 @@ GDriveJSONUpdate <- function(
   # Vérifie si le path vers commandée existe
   if (googledrive::is_folder(googledrive::as_dribble(paste0(dossier_racine, dossier_commandee))) != TRUE) {
     stop(paste0("Le dossier", dossier_racine, dossier_commandee, "n'existe pas"))
-  } 
+  }
   
   # Vérifie si le path vers importée existe
   if (googledrive::is_folder(googledrive::as_dribble(paste0(dossier_racine, dossier_importee))) != TRUE) {
     stop(paste0("Le dossier", dossier_racine, dossier_importee, "n'existe pas"))
-  } 
+  }
   
   # Vérifie s'il y a de nouvelles commandes
   if (length(JSON_commandee_list) == 0) {
@@ -40,7 +46,7 @@ GDriveJSONUpdate <- function(
   # Vérifie si le path existe vers commande 3d existe
   if (googledrive::is_folder(googledrive::as_dribble(paste0(dossier_racine, dossier_3d))) != TRUE) {
     stop(paste0("Le dossier", dossier_racine, dossier_3d, "n'existe pas"))
-  } 
+  }
   
   # Itération sur tous les JSON
   for (JSON_file in JSON_commandee_list$name) {
@@ -51,20 +57,19 @@ GDriveJSONUpdate <- function(
     # Création du data frame client
     json_client <- as.tibble(json_data[c("ClientID", "Nom", "Prenom", "Adresse", "Courriel", "Mot_de_passe")])
     json_client$Commandes <- "[]"
-    json_client <- json_client |> mutate(across(c("Mot_de_passe"), as.list))
+    json_client <- json_client |> mutate(across(c("ClientID"), as.double))
     
     # Création du data frame commandes
     json_commandes <- as.tibble(json_data[c("ClientID", "CommandeID", "FichiersFabrication", "Prix", "Statut", "DateCommandeCreation", "DateCommandeModification", "DateCommandeLivraison")])
-    json_commandes$Items <- "{1:1; 4:1; 5:2}"
+    json_commandes$Items <- "-"
     json_commandes$InformationsCommande <- toJSON(json_data[-(1:(which(names(json_data) == "overallDims"))-1)])
     json_commandes$FichierAssemblage <- "-"
     json_commandes$FichiersFabrication <- paste(dossier_racine,dossier_3d,json_data$CommandeID, sep="")
-    print(json_commandes)
-    json_commandes <- json_commandes |> mutate(across(starts_with("Date"), as.Date), across(c("Prix"), as.double))
+    json_commandes <- json_commandes |> mutate(across(starts_with("Date"), as.Date), across(c("Prix"), as.double), across(c("ClientID"), as.double))
     
-    # Ajustement de customerOrders
-    print(customerOrders)
+    # Ajustement de customerOrders et customers
     customerOrders <- customerOrders |> mutate(across(starts_with("Date"), as.Date))
+    customers <- customers |> mutate(across(c("Mot_de_passe"), unlist))
     
     # Si le client n'existe pas, ajoute la ligne
     if (json_client$ClientID %notin% customers$ClientID) {
@@ -72,8 +77,13 @@ GDriveJSONUpdate <- function(
     }
     
     # Vérifie si la commande existe déjà dans la BD et écrase la ligne
+    # Supprime les pièces et les panneaux si la commande est rechargée
     if (json_data$CommandeID %in% customerOrders$CommandeID) {
       customerOrders[customerOrders$CommandeID == json_data$CommandeID, ] <- json_commandes
+      
+      pieces <- pieces |> filter(CommandeID != json_data$CommandeID)
+      
+      panneaux <- panneaux |> filter(CommandeID != json_data$CommandeID)
     } 
     
     # Si la ligne n'existe pas, ajoutée à la table
@@ -81,69 +91,42 @@ GDriveJSONUpdate <- function(
       customerOrders <- customerOrders |> rows_append(json_commandes)
     }
     
+    ################################################################################
+    #### Générer pièces aléatoires (À remplacer par le vrai code de l'équipe 3) ####
+    ################################################################################
+    randomPieces <- generateRandomPiece(json_data$CommandeID, max(pieces$PanneauID), max(pieces$PieceID))
+    
+    # Append à la table pieces
+    pieces <- pieces |> rows_append(randomPieces)
+    
+    # Générer PanneauxDetail
+    panneauTemp <- pieces[pieces$CommandeID == json_data$CommandeID, ] |> select("CommandeID", "PanneauID", "PanneauType") |> distinct()
+    panneauTemp$Statut <- rep("TODO", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneauTemp$DatePrevue <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneauTemp$DateFabrication <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneauTemp$FichierDecoupe <- rep("-", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneaux <- panneaux |> rows_append(panneauTemp)
+    
+    # Mise à jour de items des commandes du client
+    countTemp <- panneauTemp |> select(CommandeID, PanneauType) |> count( PanneauType)
+    customerOrders[customerOrders$CommandeID == json_data$CommandeID, ]$Items <- 
+      paste0("{",paste(sapply(1:nrow(countTemp), function(i) paste0(countTemp$PanneauType[i],":", countTemp$n[i])), collapse = "; "),"; 4:1; 5:2}")
+    
     # Mise à jour de la liste des commandes du client
     commandesID <- customerOrders$CommandeID[customerOrders$ClientID == json_client$ClientID]
     customers <- customers |> rows_update(
       by = "ClientID",
       as_tibble(json_client) %>%
         mutate(
-          across(c("Mot_de_passe"), as.list),
+          #across(c("Mot_de_passe"), unlist),
           Commandes = paste("[", paste(commandesID, collapse = ";"), "]", sep = "")))
     
     # Bouger le fichier dans importée
     googledrive::drive_mv(file = JSON_file, path = paste0(dossier_racine, dossier_importee))
+    
   }
   
   customerOrders <- customerOrders |> mutate(across(starts_with("Date"), function(x) ifelse(is.na(x), "", paste(as.Date(x), "00:00:00"))))
-  print(customerOrders)
   
-  return(list(customerOrders, customers))
+  return(list(customerOrders, customers, pieces, panneaux))
 }
-
-
-GDriveUpdatePiecesDetail <- function(
-  piecesDetail = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'PiecesDetail'),
-  panneauxDetail = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'PanneauxDetail'),
-  items = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Items'),
-  dossier_racine = "Industrie_VR_IFT7028/Base_de_donnees_ERP/",dossier_importee = "commandes_json/importée/",
-  commandeID
-) {
-  # JSONpath <- paste(dossier_racine, dossier_importee, commandeID, sep="")
-  startingPanneauID <- max(piecesDetail$PanneauID) + 1
-  startingPieceID <- max(piecesDetail$PieceID) + 1
-
-  ####### fonction OPTIMISATION Equipe 3 #########
-  # GetPieceDetailDataFrame(paste0(dossier_racine, commandeID), startingPanneauID, startingPieceID)
-  # return un dataframe piecesDetail complété pour LA commande et List[(id_panneau, FichierDecoupe)]
-
-  # le dataframe retourné par la fonction d'optimisation
-  piecesCommandeReturned <- piecesDetail
-  # liste des chemins de fichier de decoupe retournée par la fonction
-  pathDecoupe <- data.frame(PanneauID = c(22, 21, 20), FichierDecoupe = c("-", "-", "-"))
-
-  nb_panneau <- n_distinct(piecesCommandeReturned$PanneauID)
-
-  # get random panneau type
-  type_panneau <- length(items$ItemID[items$Type == "Panneau"])
-
-  newPanneauxDetail <- piecesCommandeReturned %>% mutate(PieceID= NULL, Fichier3D = NULL, PanneauType=NULL)
-
-  newPanneauxDetail <- distinct(newPanneauxDetail, PanneauID, .keep_all = TRUE)
-
-  newPanneauxDetail <- newPanneauxDetail %>% mutate(PanneauType = sample(1:type_panneau, nb_panneau, replace = TRUE), Statut= "TODO", DatePrevue = "", DateFabrication="")
-
-  newPanneauxDetail <- left_join(newPanneauxDetail, pathDecoupe)
-
-  panneauxDetail <- panneauxDetail |> rows_append(
-        as_tibble(newPanneauxDetail) %>% mutate(across(starts_with("Date"), lubridate::ymd_hms)))
-
-  piecesCommandeReturned$PanneauType[piecesCommandeReturned$PanneauID == newPanneauxDetail$PanneauID] <- 60
-
-  print(piecesCommandeReturned)
-
-  piecesDetail <- piecesDetail |> rows_append(
-        as_tibble(piecesCommandeReturned))
-}
-
-#GDriveJSONUpdate()
-# GDriveUpdatePiecesDetail(commandeID=1)

@@ -81,18 +81,19 @@ GDriveJSONUpdate <- function(
     # Création du data frame client
     json_client <- as.tibble(json_data[c("ClientID", "Nom", "Prenom", "Adresse", "Courriel", "Mot_de_passe")])
     json_client$Commandes <- "[]"
-    json_client <- json_client |> mutate(across(c("Mot_de_passe"), as.list), across(c("ClientID"), as.double))
+    json_client <- json_client |> mutate(across(c("ClientID"), as.double))
     
     # Création du data frame commandes
     json_commandes <- as.tibble(json_data[c("ClientID", "CommandeID", "FichiersFabrication", "Prix", "Statut", "DateCommandeCreation", "DateCommandeModification", "DateCommandeLivraison")])
-    json_commandes$Items <- "{1:1; 4:1; 5:2}"
+    json_commandes$Items <- "-"
     json_commandes$InformationsCommande <- toJSON(json_data[-(1:(which(names(json_data) == "overallDims"))-1)])
     json_commandes$FichierAssemblage <- "-"
     json_commandes$FichiersFabrication <- paste(dossier_racine,dossier_3d,json_data$CommandeID, sep="")
     json_commandes <- json_commandes |> mutate(across(starts_with("Date"), as.Date), across(c("Prix"), as.double), across(c("ClientID"), as.double))
     
-    # Ajustement de customerOrders)
+    # Ajustement de customerOrders et customers
     customerOrders <- customerOrders |> mutate(across(starts_with("Date"), as.Date))
+    customers <- customers |> mutate(across(c("Mot_de_passe"), unlist))
     
     # Si le client n'existe pas, ajoute la ligne
     if (json_client$ClientID %notin% customers$ClientID) {
@@ -114,19 +115,26 @@ GDriveJSONUpdate <- function(
       customerOrders <- customerOrders |> rows_append(json_commandes)
     }
     
+    ################################################################################
     #### Générer pièces aléatoires (À remplacer par le vrai code de l'équipe 3) ####
+    ################################################################################
     randomPieces <- generateRandomPiece(json_data$CommandeID, max(pieces$PanneauID), max(pieces$PieceID))
     
     # Append à la table pieces
     pieces <- pieces |> rows_append(randomPieces)
     
     # Générer PanneauxDetail
-    # panneauTemp <- pieces[pieces$CommandeID == json_data$CommandeID, ] |> select("CommandeID", "PanneauID", "PanneauType") |> distinct()
-    # panneauTemp$Statut <- rep("TODO", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    # panneauTemp$DatePrevue <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    # panneauTemp$DateFabrication <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    # panneauTemp$FichierDecoupe <- rep("", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    # panneaux <- panneaux |> rows_append(panneauTemp)
+    panneauTemp <- pieces[pieces$CommandeID == json_data$CommandeID, ] |> select("CommandeID", "PanneauID", "PanneauType") |> distinct()
+    panneauTemp$Statut <- rep("TODO", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneauTemp$DatePrevue <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneauTemp$DateFabrication <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneauTemp$FichierDecoupe <- rep("-", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
+    panneaux <- panneaux |> rows_append(panneauTemp)
+    
+    # Mise à jour de items des commandes du client
+    countTemp <- panneauTemp |> select(CommandeID, PanneauType) |> count( PanneauType)
+    customerOrders[customerOrders$CommandeID == json_data$CommandeID, ]$Items <- 
+      paste0("{",paste(sapply(1:nrow(countTemp), function(i) paste0(countTemp$PanneauType[i],":", countTemp$n[i])), collapse = "; "),"; 4:1; 5:2}")
     
     # Mise à jour de la liste des commandes du client
     commandesID <- customerOrders$CommandeID[customerOrders$ClientID == json_client$ClientID]
@@ -134,20 +142,23 @@ GDriveJSONUpdate <- function(
       by = "ClientID",
       as_tibble(json_client) %>%
         mutate(
-          across(c("Mot_de_passe"), as.list),
+          #across(c("Mot_de_passe"), unlist),
           Commandes = paste("[", paste(commandesID, collapse = ";"), "]", sep = "")))
     
-    # # Bouger le fichier dans importée
-    # googledrive::drive_mv(file = JSON_file, path = paste0(dossier_racine, dossier_importee))
-    # 
+    # Bouger le fichier dans importée
+    googledrive::drive_mv(file = JSON_file, path = paste0(dossier_racine, dossier_importee))
 
   }
   
   customerOrders <- customerOrders |> mutate(across(starts_with("Date"), function(x) ifelse(is.na(x), "", paste(as.Date(x), "00:00:00"))))
   
-  return(list(customerOrders, customers, pieces))
+  return(list(customerOrders, customers, pieces, panneaux))
 }
 
-liste_fichier <- googledrive::drive_ls(paste0(dossier_racine, dossier_commandee))
-data_test <- rjson::fromJSON(drive_read_string(liste_fichier$name[1], encoding = "utf-8"))
-commandes_test <- as.tibble(data_test[c("ClientID", "CommandeID", "FichiersFabrication", "Prix", "Statut", "DateCommandeCreation", "DateCommandeModification", "DateCommandeLivraison")])
+x <- GDriveJSONUpdate()
+x[[1]] |> filter(CommandeID == 96906065) |> select(Items) # CustomerOrders
+x[[2]] |> filter(ClientID == 92162447) |> select(Mot_de_passe) # Customer
+x[[3]] |> filter(CommandeID == 96906065) # Pieces
+x[[4]] |> filter(CommandeID == 96906065) # Panneaux
+
+paste0("{",paste(sapply(1:nrow(countTemp), function(i) paste0(countTemp$PanneauType[i],":", countTemp$n[i])), collapse = "; "),"; 4:1; 5:2}")
