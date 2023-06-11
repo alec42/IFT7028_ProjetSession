@@ -3,6 +3,7 @@ library(rjson)
 library(dplyr)
 library(googlesheets4)
 
+# Fonction temporaire : Génération de pièces aléatoires
 generateRandomPiece <- function(CommandeID, PanneauStart, PieceStart){
   tibble(CommandeID = rep(CommandeID, 4),
          PanneauID = c(1, 2, 3, 4) + PanneauStart,
@@ -11,6 +12,7 @@ generateRandomPiece <- function(CommandeID, PanneauStart, PieceStart){
          Fichier3D = c("-", "-", "-", "-"))
 }
 
+# Fonction : load JSON
 GDriveJSONUpdate <- function(
     dossier_racine = "Industrie_VR_IFT7028/", 
     dossier_commandee = "commandes_json/commandée/",
@@ -60,7 +62,9 @@ GDriveJSONUpdate <- function(
     json_client <- json_client |> mutate(across(c("ClientID"), as.double))
     
     # Création du data frame commandes
-    json_commandes <- as.tibble(json_data[c("ClientID", "CommandeID", "FichiersFabrication", "Prix", "Statut", "DateCommandeCreation", "DateCommandeModification", "DateCommandeLivraison")])
+    json_commandes <- as.tibble(json_data[c("ClientID", "CommandeID")]) |> 
+      add_column(FichiersFabrication = "-") |> 
+      add_column(as.tibble(json_data[c("Prix", "Statut", "DateCommandeCreation", "DateCommandeModification", "DateCommandeLivraison")]))
     json_commandes$Items <- "-"
     json_commandes$InformationsCommande <- toJSON(json_data[-(1:(which(names(json_data) == "overallDims"))-1)])
     json_commandes$FichierAssemblage <- "-"
@@ -130,3 +134,7 @@ GDriveJSONUpdate <- function(
   
   return(list(customerOrders, customers, pieces, panneaux))
 }
+
+
+
+
