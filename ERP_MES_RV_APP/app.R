@@ -487,6 +487,7 @@ server <- function(input, output, session) {
       values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible <-
         values$inventory[values$inventory$ItemID == values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$ItemID, ]$QuantiteDisponible +
         values$purchaseOrders[values$purchaseOrders$CommandeFournisseurID == input$orderID_PO, ]$Quantité
+      ## Faudrait mettre à jour la date DateMiseAJour (mais manque de temps)
     }
 
     if ((input$statusChoice_PO == "Commandée") &&
@@ -545,6 +546,7 @@ server <- function(input, output, session) {
   })
 
   # Affichage : Liste d'items de la commande
+  # en théorie faudrait afficher le ID de chaque panneau, pas juste la quantité
   observeEvent(input$orderID_exp, {
     output$ExpeditionDetails_DT <- renderDT(
       values$customerOrders |>
@@ -553,7 +555,7 @@ server <- function(input, output, session) {
         separate(Items, into = c("ItemID", "Quantity"), sep = ":") |>
         mutate(across(c(ItemID, Quantity), as.integer)) |>
         left_join(values$items, by = 'ItemID') |>
-        select(CommandeID, Type, Nom, Dimensions, Quantity) |>
+        select(CommandeID, Type, Nom, Dimensions, ItemID, Quantity) |>
         filter(as.character(CommandeID) == input$orderID_exp),
       options = dt_options, rownames = FALSE, selection = "none")
   })
@@ -670,8 +672,8 @@ server <- function(input, output, session) {
     shinyWidgets::sendSweetAlert(session, closeOnClickOutside = T, html = T, title = "Mise à jour effectuée", width = "45%", text = "Les données ont été mises à jour.", type = "success")
     #### Planning ####
     # add a button for max_range (hirozn planif), buffer (horizon_gelé), and nb_machines
-    
-    loadNewJSON <- GDriveJSONUpdate(dossier_racine = "Industrie_VR_IFT7028/", 
+
+    loadNewJSON <- GDriveJSONUpdate(dossier_racine = "Industrie_VR_IFT7028/",
                               dossier_commandee = "commandes_json/commandée/",
                               dossier_importee = "commandes_json/importée/",
                               dossier_3d = "commandes_3d/",
