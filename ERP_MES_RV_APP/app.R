@@ -681,17 +681,17 @@ server <- function(input, output, session) {
                               customers = values$clients,
                               pieces = values$pieces,
                               panneaux = values$panneaux)
-    
+
     values$customerOrders <- loadNewJSON[[1]]
     values$clients <- loadNewJSON[[2]]
     values$pieces <- loadNewJSON[[3]]
     values$panneaux <- loadNewJSON[[4]]
-    
+
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
     googlesheets4::sheet_write(data = values$clients, ss = link_gs_erp, sheet = clientsSheetName)
     googlesheets4::sheet_write(data = values$pieces, ss = link_gs_erp, sheet = piecesSheetName)
     googlesheets4::sheet_write(data = values$panneaux, ss = link_gs_erp, sheet = panneauxSheetName)
-    
+
     MES_output <- MES_planif(
       values$customerOrders, values$inventory, values$purchaseOrders, values$panneaux, values$items, values$factory, values$employees,
       input$dayPlanif, max_range = as.numeric(input$maxDaysPlanif), buffer = as.numeric(input$bufferDaysPlanif), nb_machines = as.numeric(input$nbMachinesPlanif))

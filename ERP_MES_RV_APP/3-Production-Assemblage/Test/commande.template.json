@@ -1,0 +1,207 @@
+[{
+		"ClientID": "1",
+		"CommandeID": "1",
+		"FichiersFabrication": "-",
+		"Prix": "2500",
+		"Statut": "Command\u00e9e",
+		"DateCommandeCreation": "2023-01-01 00:00:00",
+		"DateCommandeModification": "",
+		"DateCommandeLivraison": "2023-01-14 00:00:00",
+		"Items": "{1:3; 3:1; 4:1; 5:2}",
+		"overallDims": {
+			"lenght": {
+				"value": 0,
+				"name": "Lenght",
+				"units": "cm"
+			},
+			"width": {
+				"value": 0,
+				"name": "Width",
+				"units": "cm"
+			},
+			"height": {
+				"value": 0,
+				"name": "Height",
+				"units": "cm"
+			},
+			"radFront": {
+				"value": 0,
+				"name": "Radius Front",
+				"units": "cm"
+			},
+			"radBack": {
+				"value": 0,
+				"name": "Radius Back",
+				"units": "cm"
+			}
+		},
+		"leftSideOptions": {
+			"doorLenght": {
+				"value": 0,
+				"name": "Door Length",
+				"units": "cm"
+			},
+			"doorWidth": {
+				"value": 0,
+				"name": "Door Width",
+				"units": "cm"
+			},
+			"doorPosX": {
+				"value": 0,
+				"name": "Door X Offset",
+				"units": "cm"
+			},
+			"doorPosY": {
+				"value": 0,
+				"name": "Door Y Offset",
+				"units": "cm"
+			},
+			"doorRadius": {
+				"value": 0,
+				"name": "Door Front",
+				"units": "cm"
+			},
+			"windowLenght": {
+				"value": 0,
+				"name": "Window Length",
+				"units": "cm"
+			},
+			"windowWidth": {
+				"value": 0,
+				"name": "Window Width",
+				"units": "cm"
+			},
+			"windowPosX": {
+				"value": 0,
+				"name": "Window X Offset",
+				"units": "cm"
+			},
+			"windowPosY": {
+				"value": 0,
+				"name": "Window Y Offset",
+				"units": "cm"
+			},
+			"windowRadius": {
+				"value": 0,
+				"name": "Window Radius",
+				"units": "cm"
+			}
+		},
+		"rightSideOptions": {
+			"doorLenght": {
+				"value": 0,
+				"name": "Door Length",
+				"units": "cm"
+			},
+			"doorWidth": {
+				"value": 0,
+				"name": "Door Width",
+				"units": "cm"
+			},
+			"doorPosX": {
+				"value": 0,
+				"name": "Door X Offset",
+				"units": "cm"
+			},
+			"doorPosY": {
+				"value": 0,
+				"name": "Door Y Offset",
+				"units": "cm"
+			},
+			"doorRadius": {
+				"value": 0,
+				"name": "Door Front",
+				"units": "cm"
+			},
+			"windowLenght": {
+				"value": 0,
+				"name": "Window Length",
+				"units": "cm"
+			},
+			"windowWidth": {
+				"value": 0,
+				"name": "Window Width",
+				"units": "cm"
+			},
+			"windowPosX": {
+				"value": 0,
+				"name": "Window X Offset",
+				"units": "cm"
+			},
+			"windowPosY": {
+				"value": 0,
+				"name": "Window Y Offset",
+				"units": "cm"
+			},
+			"windowRadius": {
+				"value": 0,
+				"name": "Window Radius",
+				"units": "cm"
+			}
+		}
+	},
+	{
+		"ClientID": "2",
+		"CommandeID": "2",
+		"model_params": {
+			"top_floor_panel": {},
+			"bottom_floor_panel": {},
+			"left_inside_panel": {},
+			"left_outside_panel": {},
+			"right_outside_panel": {},
+			"right_inside_panel": {},
+			"front_straight_panel": {},
+			"front_ellipse_panel": {},
+			"top_panel": {},
+			"back_ellipse_panel": {},
+			"back_straight_panel": {},
+			"fixed_trusses": [],
+			"center_back_wall_trusses": [],
+			"center_front_wall_trusses": [],
+			"center_back_ellipse_trusses": [],
+			"center_front_ellipse_trusses": [],
+			"left_base_board_truss": {},
+			"right_base_board_truss": {}
+
+		},
+		"FichiersFabrication": {
+			"bottom_floor_panel": ["bottom_floor_panel.2d.scad", "bottom_floor_panel.3d.scad"],
+			"top_floor_panel": ["top_floor_panel.2d.scad", "top_floor_panel.3d.scad"],
+			"left_inside_panel": ["left_inside_panel.2d.scad", "left_inside_panel.3d.scad"],
+			"left_outside_panel": ["left_outside_panel.2d.scad", "left_outside_panel.3d.scad"],
+			"right_inside_panel": ["right_inside_panel.2d.scad", "right_inside_panel.3d.scad"],
+			"right_outside_panel": ["right_outside_panel.2d.scad", "right_outside_panel.3d.scad"],
+			"fixed_trusses_0": ["fixed_trusses_0.2d.scad", "fixed_trusses_0.3d.scad"],
+			"fixed_trusses_1": ["fixed_trusses_1.2d.scad", "fixed_trusses_1.3d.scad"],
+			"fixed_trusses_2": ["fixed_trusses_2.2d.scad", "fixed_trusses_2.3d.scad"],
+			"fixed_trusses_3": ["fixed_trusses_3.2d.scad", "fixed_trusses_3.3d.scad"],
+			"fixed_trusses_4": ["fixed_trusses_4.2d.scad", "fixed_trusses_4.3d.scad"],
+			"fixed_trusses_5": ["fixed_trusses_5.2d.scad", "fixed_trusses_5.3d.scad"],
+			"fixed_trusses_6": ["fixed_trusses_6.2d.scad", "fixed_trusses_6.3d.scad"],
+			"fixed_trusses_7": ["fixed_trusses_7.2d.scad", "fixed_trusses_7.3d.scad"],
+			"center_back_wall_trusses_0": ["center_back_wall_trusses_0.2d.scad", "center_back_wall_trusses_0.3d.scad"],
+			"center_back_wall_trusses_1": ["center_back_wall_trusses_1.2d.scad", "center_back_wall_trusses_1.3d.scad"],
+			"center_front_wall_trusses_0": ["center_front_wall_trusses_0.2d.scad", "center_front_wall_trusses_0.3d.scad"],
+			"center_front_wall_trusses_1": ["center_front_wall_trusses_1.2d.scad", "center_front_wall_trusses_1.3d.scad"],
+			"center_back_ellipse_trusses_0": ["center_back_ellipse_trusses_0.2d.scad", "center_back_ellipse_trusses_0.3d.scad"],
+			"center_back_ellipse_trusses_1": ["center_back_ellipse_trusses_1.2d.scad", "center_back_ellipse_trusses_1.3d.scad"],
+			"center_front_ellipse_trusses_0": ["center_front_ellipse_trusses_0.2d.scad", "center_front_ellipse_trusses_0.3d.scad"],
+			"center_front_ellipse_trusses_1": ["center_front_ellipse_trusses_1.2d.scad", "center_front_ellipse_trusses_1.3d.scad"],
+			"top_trusses_0": ["top_trusses_0.2d.scad", "top_trusses_0.3d.scad"],
+			"top_trusses_1": ["top_trusses_1.2d.scad", "top_trusses_1.3d.scad"],
+			"front_straight_panel": ["front_straight_panel.2d.scad", "front_straight_panel.3d.scad"],
+			"front_ellipse_panel": ["front_ellipse_panel.2d.scad", "front_ellipse_panel.3d.scad"],
+			"top_panel": ["top_panel.2d.scad", "top_panel.3d.scad"],
+			"back_ellipse_panel": ["back_ellipse_panel.2d.scad", "back_ellipse_panel.3d.scad"],
+			"back_straight_panel": ["back_straight_panel.2d.scad", "back_straight_panel.3d.scad"],
+			"left_base_board_truss":["left_base_board_truss.2d.scad", "left_base_board_truss.3d.scad"],
+			"right_base_board_truss":["right_base_board_truss.2d.scad", "right_base_board_truss.3d.scad"]
+		},
+		"Prix": "300",
+		"Statut": "En livraison",
+		"DateCommandeCreation": "2023-01-16 00:00:00",
+		"DateCommandeModification": "",
+		"DateCommandeLivraison": "2023-05-16 12:00:00",
+		"Items": "{2:2; 4:1; 5:2}"
+	}
+]
