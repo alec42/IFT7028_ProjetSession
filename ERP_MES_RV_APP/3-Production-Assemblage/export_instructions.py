@@ -36,14 +36,17 @@ def create_fichiers_fabrication_dict(folder_path):
 def create_teardrop_assembly_manual(order_id):
     # Create a document with the specified file path
     project_root = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(project_root, r"Instructions\Manuel_Assemblage.pdf")
-    directory_path = os.path.join(project_root, r"Instructions\\")
+    # file_path = os.path.join(project_root, r"Instructions\Manuel_Assemblage.pdf")
+    file_path = os.path.join(project_root, r"Instructions/Manuel_Assemblage.pdf")
+    # directory_path = os.path.join(project_root, r"Instructions\\")
+    directory_path = os.path.join(project_root, r"Instructions/")
 
     # Create the directory if it doesn't exist
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
-    directory_temp_assembly = os.path.join(project_root, r"Assembly_Temp\\")
+    # directory_temp_assembly = os.path.join(project_root, r"Assembly_Temp\\")
+    directory_temp_assembly = os.path.join(project_root, r"Assembly_Temp/")
 
     # Create the directory if it doesn't exist
     if not os.path.exists(directory_temp_assembly):
@@ -64,7 +67,8 @@ def create_teardrop_assembly_manual(order_id):
     # Load the assembly image and and the steps images
     project_root = os.path.dirname(os.path.abspath(__file__))
 
-    a_path = os.path.join(project_root, "OpenSCAD_Parts\\")
+    # a_path = os.path.join(project_root, "OpenSCAD_Parts\\")
+    a_path = os.path.join(project_root, "OpenSCAD_Parts/")
 
 
     # Specify the directory path
@@ -98,7 +102,8 @@ def create_teardrop_assembly_manual(order_id):
     # Create .scad assemblies for instructions
     # Create assembly .scad
     assembly_parts = []
-    assembly_output_path = os.path.join(project_root,r"Assembly_Temp\assembly.scad")
+    # assembly_output_path = os.path.join(project_root,r"Assembly_Temp\assembly.scad")
+    assembly_output_path = os.path.join(project_root,r"Assembly_Temp/assembly.scad")
     for key, value in fichiers_fabrication.items():
         #assembly_parts.append(os.path.join(project_root + "\OpenSCAD_Parts\\",value[1]))
         print(value)
@@ -110,7 +115,8 @@ def create_teardrop_assembly_manual(order_id):
     openscad_export.export_to_bmp()
 
     # Path to images created before. Lenght is always the same s
-    images = ["Test\iso2.png","Test\output.bmp","Test\output.bmp","Test\output.bmp","Test\output.bmp","Test\output.bmp","Test\output.bmp"]
+    # images = ["Test\iso2.png","Test\output.bmp","Test\output.bmp","Test\output.bmp","Test\output.bmp","Test\output.bmp","Test\output.bmp"]
+    images = ["Test/iso2.png","Test/output.bmp","Test/output.bmp","Test/output.bmp","Test/output.bmp","Test/output.bmp","Test/output.bmp"]
 
     desired_height = 180 # Do not modify
     pdf_images = []

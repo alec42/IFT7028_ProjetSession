@@ -9,28 +9,35 @@ import Production.FindTabPositions as tabs
 def export_all_dxfs(order_id):
     project_root = os.path.dirname(os.path.abspath(__file__))
 
-    directory_path = os.path.join(project_root, r"Production_Temp\\")
+    # directory_path = os.path.join(project_root, r"Production_Temp\\")
+    directory_path = os.path.join(project_root, r"Production_Temp/")
 
     # Create the directory if it doesn't exist
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
-    directory_temp_assembly = os.path.join(project_root, r"Production_Temp\\")
+    directory_temp_assembly = os.path.join(project_root, r"Production_Temp/")
+    # directory_temp_assembly = os.path.join(project_root, r"Production_Temp\\")
 
-    directory_path = os.path.join(project_root, r"Production_Drawings\\")
+    directory_path = os.path.join(project_root, r"Production_Drawings/")
+    # directory_path = os.path.join(project_root, r"Production_Drawings\\")
 
     # Create the directory if it doesn't exist
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
-    directory_temp_assembly = os.path.join(project_root, r"Production_Drawings\\")
+    directory_temp_assembly = os.path.join(project_root, r"Production_Drawings/")
+    # directory_temp_assembly = os.path.join(project_root, r"Production_Drawings\\")
 
 
 
 
-    input_path = os.path.join(project_root, "OpenSCAD_Parts\\")
-    output_path = os.path.join(project_root, "Production_Temp\\")
-    final_path = os.path.join(project_root, "Production_Drawings\\")
+    input_path = os.path.join(project_root, "OpenSCAD_Parts/")
+    output_path = os.path.join(project_root, "Production_Temp/")
+    final_path = os.path.join(project_root, "Production_Drawings/")
+    # input_path = os.path.join(project_root, "OpenSCAD_Parts\\")
+    # output_path = os.path.join(project_root, "Production_Temp\\")
+    # final_path = os.path.join(project_root, "Production_Drawings\\")
 
     # Specify the directory path
     directory = input_path
@@ -103,16 +110,26 @@ def export_all_dxfs(order_id):
             point[0] += truss_tabs[0]
             point[1] += truss_tabs[1]
 
-        openscad_export.export_to_dxf(os.path.join(project_root, "Test\combined_beams_1.scad"),
-                                      os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"))
-        openscad_export.export_to_dxf(os.path.join(project_root, "Test\combined_beams_2.scad"),
-                                      os.path.join(project_root, "Production_Temp\combined_beams_2.dxf"))
+        openscad_export.export_to_dxf(os.path.join(project_root, "Test/combined_beams_1.scad"),
+                                      os.path.join(project_root, "Production_Temp/combined_beams_1.dxf"))
+        openscad_export.export_to_dxf(os.path.join(project_root, "Test/combined_beams_2.scad"),
+                                      os.path.join(project_root, "Production_Temp/combined_beams_2.dxf"))
+        # openscad_export.export_to_dxf(os.path.join(project_root, "Test\combined_beams_1.scad"),
+        #                               os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"))
+        # openscad_export.export_to_dxf(os.path.join(project_root, "Test\combined_beams_2.scad"),
+        #                               os.path.join(project_root, "Production_Temp\combined_beams_2.dxf"))
         format_dxf_for_laser_cutting.format_dxf_for_laser_cutting(
-            os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"),
-            os.path.join(project_root, "Production_Drawings\combined_beams_1.dxf"),str(order_id) + "/1", origins_1,2)
+            os.path.join(project_root, "Production_Temp/combined_beams_1.dxf"),
+            os.path.join(project_root, "Production_Drawings/combined_beams_1.dxf"),str(order_id) + "/1", origins_1,2)
         format_dxf_for_laser_cutting.format_dxf_for_laser_cutting(
-            os.path.join(project_root, "Production_Temp\combined_beams_2.dxf"),
-            os.path.join(project_root, "Production_Drawings\combined_beams_2.dxf" ), str(order_id) + "/2", origins_2,2)
+            os.path.join(project_root, "Production_Temp/combined_beams_2.dxf"),
+            os.path.join(project_root, "Production_Drawings/combined_beams_2.dxf" ), str(order_id) + "/2", origins_2,2)
+        # format_dxf_for_laser_cutting.format_dxf_for_laser_cutting(
+        #     os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"),
+        #     os.path.join(project_root, "Production_Drawings\combined_beams_1.dxf"),str(order_id) + "/1", origins_1,2)
+        # format_dxf_for_laser_cutting.format_dxf_for_laser_cutting(
+        #     os.path.join(project_root, "Production_Temp\combined_beams_2.dxf"),
+        #     os.path.join(project_root, "Production_Drawings\combined_beams_2.dxf" ), str(order_id) + "/2", origins_2,2)
 
     else:
 
@@ -132,10 +149,15 @@ def export_all_dxfs(order_id):
             for truss_tab in truss_tabs:
                 tabs_1.append([point[0] + truss_tab[0],point[1] + truss_tab[1]])
 
-        openscad_export.export_to_dxf(os.path.join(project_root, "Test\combined_beams_1.scad"),
-                                     os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"))
+        openscad_export.export_to_dxf(os.path.join(project_root, "Test/combined_beams_1.scad"),
+                                     os.path.join(project_root, "Production_Temp/combined_beams_1.dxf"))
+        # openscad_export.export_to_dxf(os.path.join(project_root, "Test\combined_beams_1.scad"),
+                                     # os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"))
         format_dxf_for_laser_cutting.format_dxf_for_laser_cutting(
-            os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"),
-            os.path.join(project_root, "Production_Drawings\combined_beams_1.dxf" ),str(order_id) + "/1", tabs_1,2)
+            os.path.join(project_root, "Production_Temp/combined_beams_1.dxf"),
+            os.path.join(project_root, "Production_Drawings/combined_beams_1.dxf" ),str(order_id) + "/1", tabs_1,2)
+        # format_dxf_for_laser_cutting.format_dxf_for_laser_cutting(
+            # os.path.join(project_root, "Production_Temp\combined_beams_1.dxf"),
+            # os.path.join(project_root, "Production_Drawings\combined_beams_1.dxf" ),str(order_id) + "/1", tabs_1,2)
 
 export_all_dxfs(123456789)
