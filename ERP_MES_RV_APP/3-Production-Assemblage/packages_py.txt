@@ -1,0 +1,6 @@
+ezdxf
+python-docx
+Pillow
+pandas
+svglib
+google-api-python-client

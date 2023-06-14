@@ -8,18 +8,16 @@ library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
 library(timevis)
+library(reticulate)
 
 Sys.setlocale("LC_TIME", "en_US")
 # day_planif <- Sys.Date()
 # day_planif <- "2023-05-31"
+setwd("./3-Production-Assemblage/")
 
-source("scripts/googlesheets_access.R") # get link to gs
-source("scripts/planning_algo.R", local = TRUE)
-source("scripts/google_drive_json_update_v2.R", local = TRUE)
-
-# GDriveJSONUpdate(
-#   dossier_racine = "Industrie_VR_IFT7028/", dossier_commandee = "commandes_json/commandée/", dossier_importee = "commandes_json/importée/",
-#   customerOrders = read_sheet("https://docs.google.com/spreadsheets/d/11JaAXM2rWh7VzRD3BWCzxzcQ1TJDrMQi9Inu8aflRLE/edit#gid=2103113611", sheet = 'Commandes'))
+source("../scripts/googlesheets_access.R") # get link to gs
+source("../scripts/planning_algo.R", local = TRUE)
+source("../scripts/google_drive_json_update_v2.R", local = TRUE)
 
 #### Google Sheets ####
 

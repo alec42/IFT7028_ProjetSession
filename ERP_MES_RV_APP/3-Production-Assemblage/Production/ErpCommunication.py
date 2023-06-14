@@ -12,7 +12,7 @@ import export_dxfs
 
 def GetProductionInformation( currentOrderId, firstPannelId, firstPieceId ):
     DownloadCurrentOrderFiles( currentOrderId )
-    export_dxfs.export_all_dxfs()
+    export_dxfs.export_all_dxfs(currentOrderId)
     uploadedFiles = UploadFiles( currentOrderId, '1rEnyXZtbNq3IC1EcS6eIh7DboE_L3hB3', './Production_Drawings' )
     pieceDataFrame, pannelIdProdFileAssociation = GetPieceDetailDataframe(currentOrderId, firstPannelId, firstPieceId)
     return pieceDataFrame, pannelIdProdFileAssociation
@@ -154,14 +154,14 @@ def CreateOutputFolder( folderName ):
 
 def GetReadOnlyService():
     credentials = service_account.Credentials.from_service_account_file('ift-7028-389418-5c740eb054da.json')
-    scopes = ['https://www.googleapis.com/auth/drive.readonly']
+    scopes = ['https://www.googleapis.com/auth/drive.readonly', "https://www.googleapis.com/auth/drive.file"]
     credentials = credentials.with_scopes(scopes)
     service = build('drive', 'v3', credentials=credentials)
     return service
 
 def GetWriteAccessService():
     credentialFile = './ift-7028-389418-5c740eb054da.json'
-    scopes = ['https://www.googleapis.com/auth/drive.file']
+    scopes = ["https://www.googleapis.com/auth/drive.file"]
     credentials = service_account.Credentials.from_service_account_file(credentialFile, scopes=scopes)
     service = build('drive', 'v3', credentials=credentials)
     return service

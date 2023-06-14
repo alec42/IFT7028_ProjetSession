@@ -78,6 +78,6 @@ def offset_dxf(dxf, offset_x, offset_y):
 
 
 # Usage example
-input_dxf_path = 'Test/top_view.dxf'
-output_dxf_path = 'Test/output_with_tab_curvetest.dxf'
-format_dxf_for_laser_cutting(input_dxf_path, output_dxf_path,'123456/1',[(50, -10)])
+# input_dxf_path = 'Test/top_view.dxf'
+# output_dxf_path = 'Test/output_with_tab_curvetest.dxf'
+# format_dxf_for_laser_cutting(input_dxf_path, output_dxf_path,'123456/1',[(50, -10)])

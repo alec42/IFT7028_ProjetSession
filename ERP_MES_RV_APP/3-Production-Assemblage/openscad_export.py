@@ -94,7 +94,7 @@ def export_to_bmp(input_path, output_path):
     paragraph = doc.add_paragraph()
     picture = paragraph.add_run()
     picture.add_picture(png_file, width=Inches(6))
-    doc.save()
+    doc.save(png_file)
 
 
 
