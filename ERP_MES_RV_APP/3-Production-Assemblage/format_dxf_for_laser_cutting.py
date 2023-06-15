@@ -1,8 +1,6 @@
 import os
 from ezdxf import recover
 
-
-
 import ezdxf
 
 def format_dxf_for_laser_cutting(input_dxf_path, output_dxf_path, text, tab_coordinates,tabsize=25):

@@ -1,3 +1,4 @@
+import os
 import glob
 
 def beam(width, height):
@@ -22,7 +23,7 @@ def concatenate_beams(panel_width, panel_height, gap, floor_beam_width, floor_be
         if offset_x + floor_beam_width > panel_width:
             origins_matrix.append(beam_origins)
             beam_origins = []
-            with open(f'Test/combined_beams_{file_count}.scad', 'w') as f:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),f'Production_Temp/combined_beams_{file_count}.scad'), 'w') as f:
                 f.write(beam_string)
             beam_string = ""
             offset_x = 0
@@ -37,7 +38,7 @@ def concatenate_beams(panel_width, panel_height, gap, floor_beam_width, floor_be
         if offset_x + regular_beam_width > panel_width:
             origins_matrix.append(beam_origins)
             beam_origins = []
-            with open(f'Test/combined_beams_{file_count}.scad', 'w') as f:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),f'Production_Temp/combined_beams_{file_count}.scad'), 'w') as f:
                 f.write(beam_string)
             beam_string = ""
             offset_x = 0
@@ -47,7 +48,7 @@ def concatenate_beams(panel_width, panel_height, gap, floor_beam_width, floor_be
     # write the remaining beam if any
     if beam_string:
         origins_matrix.append(beam_origins)
-        with open(f'Test/combined_beams_{file_count}.scad', 'w') as f:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),f'Production_Temp/combined_beams_{file_count}.scad'), 'w') as f:
             f.write(beam_string)
 
     return origins_matrix

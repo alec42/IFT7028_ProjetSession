@@ -11,8 +11,6 @@ library(timevis)
 library(reticulate)
 
 Sys.setlocale("LC_TIME", "en_US")
-# day_planif <- Sys.Date()
-# day_planif <- "2023-05-31"
 setwd("./3-Production-Assemblage/")
 
 source("../scripts/googlesheets_access.R") # get link to gs

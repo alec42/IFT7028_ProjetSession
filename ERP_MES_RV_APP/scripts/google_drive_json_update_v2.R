@@ -5,14 +5,18 @@ library(googlesheets4)
 library(reticulate)
 library(tidyverse)
 
+
+reticulate::source_python("Production/ErpCommunication.py")
+
+
 # Fonction temporaire : Génération de pièces aléatoires
-generateRandomPiece <- function(CommandeID, PanneauStart, PieceStart){
-  tibble(CommandeID = rep(CommandeID, 4),
-         PanneauID = c(1, 2, 3, 4) + PanneauStart,
-         PieceID = c(1, 2, 3, 4) + PieceStart,
-         PanneauType = round(runif(4, 1, 3)),
-         Fichier3D = c("-", "-", "-", "-"))
-}
+# generateRandomPiece <- function(CommandeID, PanneauStart, PieceStart){
+#   tibble(CommandeID = rep(CommandeID, 4),
+#          PanneauID = c(1, 2, 3, 4) + PanneauStart,
+#          PieceID = c(1, 2, 3, 4) + PieceStart,
+#          PanneauType = round(runif(4, 1, 3)),
+#          Fichier3D = c("-", "-", "-", "-"))
+# }
 
 # Fonction : load JSON
 GDriveJSONUpdate <- function(
@@ -100,10 +104,14 @@ GDriveJSONUpdate <- function(
     ################################################################################
     #### Générer pièces aléatoires (À remplacer par le vrai code de l'équipe 3) ####
     ################################################################################
-    randomPieces <- generateRandomPiece(json_data$CommandeID, max(pieces$PanneauID), max(pieces$PieceID))
+    # randomPieces <- generateRandomPiece(json_data$CommandeID, max(pieces$PanneauID), max(pieces$PieceID))
+    PiecesDetail_Gen_1 <- GetProductionInformation(currentOrderId = as.character(json_data$CommandeID), firstPannelId = max(pieces$PanneauID), firstPieceId = max(pieces$PieceID))
+    PiecesDetail_Gen <- PiecesDetail_Gen_1[[1]] |> as_tibble() |> mutate(across(c(PanneauID, PieceID, PanneauType), unlist)) |> mutate(CommandeID = as.numeric(CommandeID)) |>
+      filter(!str_detect(FichierDecoupe, "truss"))
+    PiecesDetail_Gen_f <- PiecesDetail_Gen |> select(CommandeID, PanneauID, PanneauType, Fichier3D) |> distinct() |> add_column(PieceID = max(pieces$PieceID)+seq(1, PiecesDetail_Gen |> select(CommandeID, PanneauID, PanneauType, Fichier3D) |> distinct() |> nrow())) |> select(CommandeID, PanneauID, PieceID, PanneauType, Fichier3D)
 
     # Append à la table pieces
-    pieces <- pieces |> rows_append(randomPieces)
+    pieces <- pieces |> rows_upsert(PiecesDetail_Gen_f, by = 'PieceID')
 
     # Générer PanneauxDetail
     panneauTemp <- pieces[pieces$CommandeID == json_data$CommandeID, ] |> select("CommandeID", "PanneauID", "PanneauType") |> distinct()

@@ -4,3 +4,5 @@ Pillow
 pandas
 svglib
 google-api-python-client
+docx
+reportlab
