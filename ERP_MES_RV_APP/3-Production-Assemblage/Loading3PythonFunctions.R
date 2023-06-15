@@ -16,8 +16,9 @@ PanneauDetail <- tibble(
 ) |>
     left_join(PiecesDetail, by="PieceID") |>
     group_by(PanneauID) |>
-    select(PanneauID, FichierDecoupe, PanneauType) |>
+    select(CommandeID, PanneauID,PanneauType,  FichierDecoupe) |>
     filter(!str_detect(FichierDecoupe, "truss")) |>
+    add_column(Statut = "TODO", DatePrevue = NA, DateFabrication = NA) |>
     mutate(FichierDecoupe = googledrive::drive_link(googledrive::as_dribble(str_replace(FichierDecoupe, "\\.[23]d\\.", ".")))) |>
     distinct()
 PanneauDetail

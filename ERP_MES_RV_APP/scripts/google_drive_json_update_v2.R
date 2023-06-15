@@ -114,15 +114,22 @@ GDriveJSONUpdate <- function(
     pieces <- pieces |> rows_upsert(PiecesDetail_Gen_f, by = 'PieceID')
 
     # Générer PanneauxDetail
-    panneauTemp <- pieces[pieces$CommandeID == json_data$CommandeID, ] |> select("CommandeID", "PanneauID", "PanneauType") |> distinct()
-    panneauTemp$Statut <- rep("TODO", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    panneauTemp$DatePrevue <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    panneauTemp$DateFabrication <- rep(NA, length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    panneauTemp$FichierDecoupe <- rep("-", length(pieces[pieces$CommandeID == json_data$CommandeID, ]$CommandeID))
-    panneaux <- panneaux |> rows_append(panneauTemp)
+
+    PanneauDetail <- tibble(
+      PieceID = as.numeric(unlist(prod[[2]])[seq(1,length(prod[[2]])*2,2)]),
+      FichierDecoupe = unlist(prod[[2]])[seq(2,length(prod[[2]])*2,2)]
+    ) |>
+      left_join(PiecesDetail, by="PieceID") |>
+      group_by(PanneauID) |>
+      select(CommandeID, PanneauID,PanneauType,  FichierDecoupe) |>
+      filter(!str_detect(FichierDecoupe, "truss|2d")) |>
+      add_column(Statut = "TODO", DatePrevue = NA, DateFabrication = NA) |>
+      mutate(FichierDecoupe = googledrive::drive_link(googledrive::as_dribble(str_replace(FichierDecoupe, "\\.[23]d\\.", ".")))) |>
+      distinct()
+    panneaux <- panneaux |> rows_upsert(PanneauDetail, by=c("CommandeID", "PanneauID"))
 
     # Mise à jour de items des commandes du client
-    countTemp <- panneauTemp |> select(CommandeID, PanneauType) |> count( PanneauType)
+    countTemp <- PanneauDetail |> select(CommandeID, PanneauType) |> count( PanneauType)
     customerOrders[customerOrders$CommandeID == json_data$CommandeID, ]$Items <-
       paste0("{",paste(sapply(1:nrow(countTemp), function(i) paste0(countTemp$PanneauType[i],":", countTemp$n[i])), collapse = "; "),"; 4:1; 5:2}")
 

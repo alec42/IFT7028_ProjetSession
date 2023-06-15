@@ -1,0 +1,264 @@
+{
+    "ClientID": "2",
+    "CommandeID": "2",
+    "model_params": {
+        "top_floor_panel": {},
+        "bottom_floor_panel": {},
+        "left_inside_panel": {},
+        "left_outside_panel": {},
+        "right_outside_panel": {},
+        "right_inside_panel": {},
+        "front_straight_panel": {},
+        "front_ellipse_panel": {},
+        "top_panel": {},
+        "back_ellipse_panel": {},
+        "back_straight_panel": {},
+        "fixed_trusses": [],
+        "center_back_wall_trusses": [],
+        "center_front_wall_trusses": [],
+        "center_back_ellipse_trusses": [],
+        "center_front_ellipse_trusses": [],
+        "left_base_board_truss": {},
+        "right_base_board_truss": {}
+    },
+    "FichiersFabrication": {
+        "floor_panel": [
+            "floor_panel.2d.scad",
+            "floor_panel.3d.scad"
+        ],
+        "left_inside_panel": [
+            "left_inside_panel.2d.scad",
+            "left_inside_panel.3d.scad"
+        ],
+        "left_outside_panel": [
+            "left_outside_panel.2d.scad",
+            "left_outside_panel.3d.scad"
+        ],
+        "right_outside_panel": [
+            "right_outside_panel.2d.scad",
+            "right_outside_panel.3d.scad"
+        ],
+        "fixed_trusses_0": [
+            "fixed_trusses_0.2d.scad",
+            "fixed_trusses_0.3d.scad"
+        ],
+        "fixed_trusses_1": [
+            "fixed_trusses_1.2d.scad",
+            "fixed_trusses_1.3d.scad"
+        ],
+        "fixed_trusses_2": [
+            "fixed_trusses_2.2d.scad",
+            "fixed_trusses_2.3d.scad"
+        ],
+        "fixed_trusses_3": [
+            "fixed_trusses_3.2d.scad",
+            "fixed_trusses_3.3d.scad"
+        ],
+        "fixed_trusses_4": [
+            "fixed_trusses_4.2d.scad",
+            "fixed_trusses_4.3d.scad"
+        ],
+        "fixed_trusses_5": [
+            "fixed_trusses_5.2d.scad",
+            "fixed_trusses_5.3d.scad"
+        ],
+        "fixed_trusses_6": [
+            "fixed_trusses_6.2d.scad",
+            "fixed_trusses_6.3d.scad"
+        ],
+        "fixed_trusses_7": [
+            "fixed_trusses_7.2d.scad",
+            "fixed_trusses_7.3d.scad"
+        ],
+        "center_back_wall_trusses_0": [
+            "center_back_wall_trusses_0.2d.scad",
+            "center_back_wall_trusses_0.3d.scad"
+        ],
+        "center_front_wall_trusses_0": [
+            "center_front_wall_trusses_0.2d.scad",
+            "center_front_wall_trusses_0.3d.scad"
+        ],
+        "center_back_ellipse_trusses_0": [
+            "center_back_ellipse_trusses_0.2d.scad",
+            "center_back_ellipse_trusses_0.3d.scad"
+        ],
+        "center_back_ellipse_trusses_1": [
+            "center_back_ellipse_trusses_1.2d.scad",
+            "center_back_ellipse_trusses_1.3d.scad"
+        ],
+        "center_front_ellipse_trusses_0": [
+            "center_front_ellipse_trusses_0.2d.scad",
+            "center_front_ellipse_trusses_0.3d.scad"
+        ],
+        "center_front_ellipse_trusses_1": [
+            "center_front_ellipse_trusses_1.2d.scad",
+            "center_front_ellipse_trusses_1.3d.scad"
+        ],
+        "top_trusses_0": [
+            "top_trusses_0.2d.scad",
+            "top_trusses_0.3d.scad"
+        ],
+        "top_trusses_1": [
+            "top_trusses_1.2d.scad",
+            "top_trusses_1.3d.scad"
+        ],
+        "left_base_board_truss": [
+            "left_base_board_truss.2d.scad",
+            "left_base_board_truss.3d.scad"
+        ]
+    },
+    "overallDims": {
+        "lenght": {
+            "value": 150,
+            "name": "Lenght",
+            "units": "cm"
+        },
+        "width": {
+            "value": 80,
+            "name": "Width",
+            "units": "cm"
+        },
+        "height": {
+            "value": 100,
+            "name": "Height",
+            "units": "cm"
+        },
+        "radFront": {
+            "value": 30,
+            "name": "Radius Front",
+            "units": "cm"
+        },
+        "radBack": {
+            "value": 40,
+            "name": "Radius Back",
+            "units": "cm"
+        },
+        "base_board_width": 2.5
+    },
+    "leftSideOptions": {
+        "doorLenght": {
+            "value": 60,
+            "name": "Door Length",
+            "units": "cm"
+        },
+        "doorWidth": {
+            "value": 20,
+            "name": "Door Width",
+            "units": "cm"
+        },
+        "doorPosX": {
+            "value": 50,
+            "name": "Door X Offset",
+            "units": "cm"
+        },
+        "doorPosY": {
+            "value": 3,
+            "name": "Door Y Offset",
+            "units": "cm"
+        },
+        "doorRadius": {
+            "value": 2,
+            "name": "Door Front",
+            "units": "cm"
+        },
+        "windowLenght": {
+            "value": 20,
+            "name": "Window Length",
+            "units": "cm"
+        },
+        "windowWidth": {
+            "value": 20,
+            "name": "Window Width",
+            "units": "cm"
+        },
+        "windowPosX": {
+            "value": 80,
+            "name": "Window X Offset",
+            "units": "cm"
+        },
+        "windowPosY": {
+            "value": 20,
+            "name": "Window Y Offset",
+            "units": "cm"
+        },
+        "windowRadius": {
+            "value": 2,
+            "name": "Window Radius",
+            "units": "cm"
+        }
+    },
+    "rightSideOptions": {
+        "doorLenght": {
+            "value": 0,
+            "name": "Door Length",
+            "units": "cm"
+        },
+        "doorWidth": {
+            "value": 0,
+            "name": "Door Width",
+            "units": "cm"
+        },
+        "doorPosX": {
+            "value": 0,
+            "name": "Door X Offset",
+            "units": "cm"
+        },
+        "doorPosY": {
+            "value": 0,
+            "name": "Door Y Offset",
+            "units": "cm"
+        },
+        "doorRadius": {
+            "value": 0,
+            "name": "Door Front",
+            "units": "cm"
+        },
+        "windowLenght": {
+            "value": 0,
+            "name": "Window Length",
+            "units": "cm"
+        },
+        "windowWidth": {
+            "value": 0,
+            "name": "Window Width",
+            "units": "cm"
+        },
+        "windowPosX": {
+            "value": 0,
+            "name": "Window X Offset",
+            "units": "cm"
+        },
+        "windowPosY": {
+            "value": 0,
+            "name": "Window Y Offset",
+            "units": "cm"
+        },
+        "windowRadius": {
+            "value": 0,
+            "name": "Window Radius",
+            "units": "cm"
+        }
+    },
+    "backwallOptions": {
+        "num_trusses": 1
+    },
+    "frontwallOptions": {
+        "num_trusses": 1
+    },
+    "frontCurveOptions": {
+        "num_trusses": 2
+    },
+    "backCurveOptions": {
+        "num_trusses": 2
+    },
+    "topwallOptions": {
+        "back_of_hole_trusses_num": 1,
+        "front_of_hole_trusses_num": 1
+    },
+    "Prix": "300",
+    "Statut": "En livraison",
+    "DateCommandeCreation": "2023-01-16 00:00:00",
+    "DateCommandeModification": "",
+    "DateCommandeLivraison": "2023-05-16 12:00:00",
+    "Items": "{2:2; 4:1; 5:2}"
+}
