@@ -264,7 +264,8 @@ ui <- shinydashboardPlus::dashboardPage(title="S.T.E.V.E.", skin = "blue-light",
         shiny::actionButton("saveBtn_exp", "Enregistrer"),
         br(),br(),
         shinydashboardPlus::box(title = "Liste d'items de la commande", solidHeader = TRUE, width = 12,
-          DT::dataTableOutput('ExpeditionDetails_DT')
+          DT::dataTableOutput('ExpeditionDetails_DT'),
+          DT::dataTableOutput('ExpeditionDetails2_DT')
         ),
         shiny::fluidRow(
           shinydashboardPlus::box(title = "Commandes prêtes à emballer", solidHeader = TRUE, status = "danger", width = 6,
@@ -558,7 +559,12 @@ server <- function(input, output, session) {
         select(CommandeID, Type, Nom, Dimensions, ItemID, Quantity) |>
         filter(as.character(CommandeID) == input$orderID_exp),
       options = dt_options, rownames = FALSE, selection = "none")
+
+    output$ExpeditionDetails2_DT <- renderDT(
+        values$panneaux |> filter(as.character(CommandeID) == input$orderID_exp) |> select(CommandeID, PanneauID, PanneauType),
+        options = dt_options, rownames = FALSE, selection = "none")
   })
+
 
   # Button : Mettre à jour le statut
   observeEvent(input$updateStatus_exp, {
@@ -595,6 +601,9 @@ server <- function(input, output, session) {
     values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$Statut <- input$panneauStatus
     if (input$panneauStatus == "DONE"){
       values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$DateFabrication <- as.POSIXct(input$dayPlanif)
+      values$inventory[values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$PanneauType, ]$QuantiteDisponible <-
+          values$inventory[values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$PanneauType, ]$QuantiteDisponible - 1
+      values$inventory[values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$PanneauType, ]$DateMiseAJour <- as.POSIXct(input$dayPlanif)
     }
 
     if (prod(sapply(
@@ -602,6 +611,8 @@ server <- function(input, output, session) {
           function(x) x == "DONE")
         ) == 1) {
       values$customerOrders[values$customerOrders$CommandeID == values$panneaux[as.character(values$panneaux$PanneauID) == input$panneauID, ]$CommandeID, ]$Statut <- "Complétée"
+      values$inventory[values$inventory$ItemID == 4, ]$QuantiteDisponible <- values$inventory[values$inventory$ItemID == 4, ]$QuantiteDisponible - 1
+      values$inventory[values$inventory$ItemID == 5, ]$QuantiteDisponible <- values$inventory[values$inventory$ItemID == 5, ]$QuantiteDisponible - 2
     }
 
     values$panelDF[values$panelDF$PanneauID == input$panneauID, ]$Statut <- input$panneauStatus
@@ -612,17 +623,18 @@ server <- function(input, output, session) {
   observeEvent(input$cancelPanneauBtn, {
     values$panneaux <- read_sheet(link_gs_erp, sheet = panneauxSheetName)
     values$customerOrders <- read_sheet(link_gs_erp, sheet = customerOrdersSheetName)
+    values$invetory <- read_sheet(link_gs_erp, sheet = InventorySheetName)
 
     values$panelDF <- values$panneau_df |>
       mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused")|>
       mutate(across(where(is.numeric), as.integer))
-
   })
 
   # Button : Enregistrer
   observeEvent(input$savePanneauBtn, {
-   googlesheets4::sheet_write(data = values$panneaux, ss = link_gs_erp, sheet = panneauxSheetName)
+    googlesheets4::sheet_write(data = values$panneaux, ss = link_gs_erp, sheet = panneauxSheetName)
     googlesheets4::sheet_write(data = values$customerOrders, ss = link_gs_erp, sheet = customerOrdersSheetName)
+    googlesheets4::sheet_write(data = values$inventory, ss = link_gs_erp, sheet = InventorySheetName)
   })
 
   #### Menu : Horaire ####
@@ -735,7 +747,7 @@ server <- function(input, output, session) {
     ## Timeline
     values$panelDF <- values$panneau_df |>
       mutate(DateFabrication=format(as.Date(DateFabrication), "%Y-%m-%d"), StartTask = str_split_i(start, " ", 2), EndTask = str_split_i(end, " ", 2), .keep = "unused") |>
-      mutate(across(where(is.numeric), as.integer))
+      mutate(across(where(is.numeric), as.integer)) |> arrange(StartTask)
     values$manufacturerDF <- fournisseurs_today |>
       mutate(DateCommande=format(as.Date(DateCommandeFCreation), "%Y-%m-%d"), DateReception=format(DateCommandeFReception, "%Y-%m-%d"), .keep = "unused")
     values$todayDF <- data_today_to_timevis
@@ -743,7 +755,8 @@ server <- function(input, output, session) {
     values$weekDF <- data_to_timevis
     values$weekGroupsDF <- data_groups
     values$weekFournisseurs <- fournisseurs_planif |>
-      mutate(DateCommande=format(as.Date(DateCommandeFCreation), "%Y-%m-%d"), DateReception=format(DateCommandeFReception, "%Y-%m-%d"), .keep = "unused")
+      mutate(DateCommande=format(as.Date(DateCommandeFCreation), "%Y-%m-%d"), DateReception=format(DateCommandeFReception, "%Y-%m-%d"), .keep = "unused") |>
+        mutate(across(where(is.numeric), as.integer))
 
     # Affichage par défaut
     output$tableWeekly_1 <- renderTable(values$weekFournisseurs)
